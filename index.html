@@ -1386,7 +1386,7 @@
                 <span>Uses today:</span>
                 <strong id="usageCount">0</strong>
                 <span>/</span>
-                <strong id="usageLimit">5</strong>
+                <strong id="usageLimit">14</strong>
                 <span class="premium-badge" id="premiumBadge" style="display: none;">✨ PREMIUM</span>
             </div>
         </section>
@@ -1399,6 +1399,7 @@
                     <option value="javascript">🟨 JavaScript</option>
                     <option value="typescript">🔷 TypeScript</option>
                     <option value="java">☕ Java</option>
+                    <option value="c">🔷 C</option>
                     <option value="cpp">🔵 C++</option>
                     <option value="csharp">💜 C#</option>
                     <option value="go">🐹 Go</option>
@@ -1476,8 +1477,12 @@
                     <div class="stat-label">Lines Output</div>
                 </div>
                 <div class="stat">
-                    <div class="stat-value" id="varsChanged">0</div>
-                    <div class="stat-label">Gaps Removed</div>
+                    <div class="stat-value" id="varsRenamed">0</div>
+                    <div class="stat-label">Vars Renamed</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="logicChanges">0</div>
+                    <div class="stat-label">Logic Changes</div>
                 </div>
                 <div class="stat">
                     <div class="stat-value" id="commentsHumanized">0</div>
@@ -1561,10 +1566,13 @@
                 <h3>💳 Complete Payment</h3>
                 <p id="paymentPlanText">Monthly Plan - ₹50</p>
                 <div class="qr-placeholder" id="qrPlaceholder">
-                    📱 QR Code Coming Soon
+                    <img src="assets/payment-qr.jpeg" alt="Payment QR Code" />
                 </div>
-                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 1rem;">
-                    Scan QR code to pay via UPI<br>
+                <p style="color: var(--primary); font-size: 1rem; margin-top: 0.5rem; font-weight: 600;">
+                    UPI ID: <span style="color: var(--secondary);">8341502008@axl</span>
+                </p>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem;">
+                    Scan QR code or use UPI ID to pay<br>
                     After payment, send screenshot to:<br>
                     <strong style="color: var(--secondary);">sai1327y@gmail.com</strong>
                 </p>
@@ -1604,7 +1612,7 @@
         const db = firebase.firestore();
         let currentUser = null;
         let userPlan = 'free'; // free, monthly, yearly
-        let dailyLimit = 5; // Free: 5, Monthly: 50, Yearly: unlimited
+        let dailyLimit = 14; // Free: 14, Monthly: 50, Yearly: unlimited
 
         // ==================== AUTH FUNCTIONS ====================
         function openAuthModal() {
@@ -1707,7 +1715,7 @@
         async function checkUserPremium(user) {
             if (!user) {
                 userPlan = 'free';
-                dailyLimit = 5;
+                dailyLimit = 14;
                 isPremium = false;
                 updateUsageDisplay();
                 return;
@@ -1743,7 +1751,7 @@
                         }
                     } else {
                         userPlan = 'free';
-                        dailyLimit = 5;
+                        dailyLimit = 14;
                         isPremium = false;
                     }
                 } else {
@@ -1755,7 +1763,7 @@
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                     userPlan = 'free';
-                    dailyLimit = 5;
+                    dailyLimit = 14;
                     isPremium = false;
                 }
                 
@@ -1784,9 +1792,9 @@
                 loginBtn.style.display = 'flex';
                 userProfile.style.display = 'none';
                 userPlan = 'free';
-                dailyLimit = 5;
+                dailyLimit = 14;
                 isPremium = false;
-                usageLimit = 5;
+                usageLimit = 14;
                 updateUsageDisplay();
             }
         }
@@ -1799,7 +1807,7 @@
 
         // ==================== CONFIGURATION ====================
         let usageCount = parseInt(localStorage.getItem('usageCount') || '0');
-        let usageLimit = 5;
+        let usageLimit = 14;
         let isPremium = localStorage.getItem('isPremium') === 'true';
         let currentTheme = localStorage.getItem('theme') || 'dark';
 
@@ -1998,12 +2006,16 @@
             }
 
             transform(code, language) {
-                this.stats = { lines: 0, vars: 0, comments: 0 };
+                this.stats = { lines: 0, vars: 0, comments: 0, varsRenamed: 0, logicChanges: 0 };
                 const originalLines = code.split('\n').length;
                 
                 let processed = this.removeCommentsAndGaps(code, language);
                 const afterCleanup = processed.split('\n').length;
                 this.stats.vars = originalLines - afterCleanup;
+                
+                // NEW: Apply anti-plagiarism transformations
+                processed = this.renameVariables(processed, language);
+                processed = this.restructureLogic(processed, language);
                 
                 processed = this.addHumanComments(processed, language);
                 this.stats.lines = processed.split('\n').length;
@@ -2011,14 +2023,577 @@
                 return processed.trim();
             }
 
+            // Variable renaming to avoid plagiarism detection
+            renameVariables(code, language) {
+                const varMappings = {
+                    // Common variable names -> alternatives (expanded for C/C++/Python/Java)
+                    'count': ['counter', 'cnt', 'totalCount', 'numItems'],
+                    'counter': ['count', 'cnt', 'tally', 'ctr'],
+                    'sum': ['total', 'result', 'sumVal', 'accumulator', 'addition'],
+                    'total': ['sum', 'grandTotal', 'finalSum', 'sumTotal'],
+                    'result': ['output', 'res', 'answer', 'finalResult', 'outcome'],
+                    'temp': ['tmp', 'swapVar', 'holder', 'temporary', 'tempVal'],
+                    'tmp': ['temp', 'holder', 'swapVal', 'tempVar'],
+                    'num': ['number', 'value', 'val', 'digit'],
+                    'number': ['num', 'val', 'digit', 'inputNum'],
+                    'value': ['val', 'data', 'item', 'inputVal'],
+                    'data': ['info', 'inputData', 'values', 'dataSet'],
+                    'arr': ['array', 'items', 'elements', 'nums'],
+                    'array': ['arr', 'collection', 'elements', 'dataArr'],
+                    'list': ['items', 'elements', 'collection', 'itemList'],
+                    'str': ['string', 'text', 'inputStr', 'strVal'],
+                    'string': ['str', 'text', 'inputString', 'strData'],
+                    'text': ['str', 'string', 'content', 'textVal'],
+                    'index': ['idx', 'pos', 'position', 'ind'],
+                    'idx': ['index', 'pos', 'ind', 'position'],
+                    'flag': ['isValid', 'status', 'check', 'marker'],
+                    'found': ['exists', 'isFound', 'located', 'detected'],
+                    'max': ['maximum', 'maxVal', 'largest', 'highest', 'maxNum'],
+                    'min': ['minimum', 'minVal', 'smallest', 'lowest', 'minNum'],
+                    'len': ['length', 'size', 'arrLen', 'strLen'],
+                    'length': ['len', 'size', 'totalLen', 'arrLength'],
+                    'size': ['length', 'len', 'arrSize', 'totalSize'],
+                    'key': ['keyVal', 'itemKey', 'identifier', 'keyName'],
+                    'val': ['value', 'itemVal', 'dataVal', 'valData'],
+                    'item': ['element', 'elem', 'entry', 'dataItem'],
+                    'element': ['elem', 'item', 'node', 'dataElement'],
+                    'elem': ['element', 'item', 'node', 'el'],
+                    'obj': ['object', 'item', 'instance', 'dataObj'],
+                    'ptr': ['pointer', 'ptrVar', 'ref', 'ptrVal'],
+                    'ans': ['answer', 'result', 'solution', 'output'],
+                    'answer': ['ans', 'result', 'solution', 'finalAns'],
+                    'avg': ['average', 'mean', 'avgVal', 'avgResult'],
+                    'average': ['avg', 'mean', 'avgValue', 'meanVal'],
+                    'diff': ['difference', 'delta', 'diffVal', 'change'],
+                    'difference': ['diff', 'delta', 'change', 'gap'],
+                    'product': ['prod', 'multiplication', 'prodResult'],
+                    'quotient': ['quot', 'division', 'divResult'],
+                    'remainder': ['rem', 'mod', 'modResult', 'leftover'],
+                    'rem': ['remainder', 'mod', 'leftover'],
+                    'mod': ['remainder', 'modulo', 'modVal'],
+                    'factorial': ['fact', 'factResult', 'factVal'],
+                    'fact': ['factorial', 'factResult'],
+                    'prime': ['primeNum', 'primeVal', 'isPrime'],
+                    'even': ['evenNum', 'isEven', 'evenVal'],
+                    'odd': ['oddNum', 'isOdd', 'oddVal'],
+                    'digit': ['digitVal', 'singleDigit', 'num'],
+                    'power': ['pow', 'exponent', 'powerVal'],
+                    'pow': ['power', 'exponent', 'powerResult'],
+                    'base': ['baseVal', 'baseNum', 'inputBase'],
+                    'exp': ['exponent', 'expVal', 'power'],
+                    'exponent': ['exp', 'power', 'expValue'],
+                    'sqrt': ['squareRoot', 'sqrtVal', 'rootVal'],
+                    'root': ['rootVal', 'sqRoot', 'nthRoot'],
+                    'area': ['areaVal', 'surfaceArea', 'totalArea'],
+                    'perimeter': ['perim', 'boundary', 'circumference'],
+                    'radius': ['rad', 'radiusVal', 'circleRadius'],
+                    'diameter': ['dia', 'diam', 'diameterVal'],
+                    'height': ['ht', 'heightVal', 'h'],
+                    'width': ['wd', 'widthVal', 'w'],
+                    'row': ['rowNum', 'rowIndex', 'rowVal', 'r'],
+                    'col': ['column', 'colNum', 'colIndex', 'c'],
+                    'column': ['col', 'colVal', 'colNum'],
+                    'matrix': ['mat', 'grid', 'arr2d', 'matrix2d'],
+                    'mat': ['matrix', 'grid', 'twoDArr'],
+                    'rows': ['numRows', 'rowCount', 'totalRows'],
+                    'cols': ['numCols', 'colCount', 'columns', 'totalCols'],
+                    'start': ['begin', 'first', 'startIdx', 'startPos'],
+                    'end': ['finish', 'last', 'endIdx', 'stop', 'endPos'],
+                    'begin': ['start', 'first', 'beginIdx'],
+                    'finish': ['end', 'last', 'final', 'endPoint'],
+                    'left': ['leftIdx', 'leftPos', 'lft'],
+                    'right': ['rightIdx', 'rightPos', 'rgt'],
+                    'mid': ['middle', 'center', 'midpoint', 'midIdx'],
+                    'middle': ['mid', 'center', 'midPos'],
+                    'prev': ['previous', 'last', 'before', 'prior'],
+                    'previous': ['prev', 'before', 'prior', 'last'],
+                    'next': ['following', 'after', 'subsequent', 'nxt'],
+                    'curr': ['current', 'now', 'present', 'cur'],
+                    'current': ['curr', 'active', 'present', 'cur'],
+                    'node': ['nodeVal', 'treeNode', 'listNode', 'nd'],
+                    'head': ['headNode', 'first', 'front', 'start'],
+                    'tail': ['tailNode', 'last', 'rear', 'end'],
+                    'front': ['first', 'head', 'start', 'beginning'],
+                    'rear': ['last', 'tail', 'end', 'back'],
+                    'top': ['topVal', 'stackTop', 'peek'],
+                    'bottom': ['bottomVal', 'base', 'floor'],
+                    'stack': ['stk', 'stackArr', 'dataStack'],
+                    'queue': ['que', 'queueArr', 'dataQueue'],
+                    'heap': ['heapArr', 'dataHeap', 'priorityQueue'],
+                    'tree': ['treeRoot', 'binaryTree', 'dataTree'],
+                    'graph': ['graphData', 'adjList', 'network'],
+                    'visited': ['seen', 'isVisited', 'checked', 'explored'],
+                    'path': ['route', 'way', 'pathList', 'trail'],
+                    'dist': ['distance', 'distVal', 'pathLen'],
+                    'distance': ['dist', 'pathLength', 'gap'],
+                    'weight': ['wt', 'edgeWeight', 'cost'],
+                    'cost': ['price', 'expense', 'weight', 'costVal'],
+                    'capacity': ['cap', 'maxCap', 'limit'],
+                    'limit': ['maxLimit', 'bound', 'cap', 'threshold'],
+                    'threshold': ['limit', 'boundary', 'cutoff'],
+                    'input': ['inp', 'inputVal', 'userInput', 'inData'],
+                    'output': ['out', 'outputVal', 'result', 'outData'],
+                    'buffer': ['buff', 'buf', 'dataBuffer', 'tempBuffer'],
+                    'line': ['lineStr', 'inputLine', 'textLine'],
+                    'word': ['wordStr', 'token', 'term'],
+                    'char': ['ch', 'character', 'letter', 'c'],
+                    'ch': ['character', 'letter', 'charVal'],
+                    'letter': ['char', 'ch', 'alphabet'],
+                    'sentence': ['sent', 'phrase', 'textLine'],
+                    'paragraph': ['para', 'block', 'textBlock']
+                };
+
+                let lines = code.split('\n');
+                let usedReplacements = {};
+                
+                // Identify variables in code and replace them consistently
+                for (let varName in varMappings) {
+                    // Create regex that matches variable name as whole word
+                    const regex = new RegExp(`\\b${varName}\\b`, 'g');
+                    let hasMatch = false;
+                    
+                    for (let line of lines) {
+                        // Reset regex lastIndex for each line
+                        regex.lastIndex = 0;
+                        if (regex.test(line)) {
+                            hasMatch = true;
+                            break;
+                        }
+                    }
+                    
+                    if (hasMatch && !usedReplacements[varName]) {
+                        const alternatives = varMappings[varName];
+                        // Pick a random alternative that hasn't been used
+                        const newName = alternatives[Math.floor(Math.random() * alternatives.length)];
+                        usedReplacements[varName] = newName;
+                        
+                        lines = lines.map(line => {
+                            // Don't replace in strings, preprocessor directives, or imports
+                            const trimmed = line.trim();
+                            if (trimmed.startsWith('#include') || 
+                                trimmed.startsWith('import') || 
+                                trimmed.startsWith('from') ||
+                                trimmed.startsWith('package') ||
+                                trimmed.startsWith('using')) {
+                                return line;
+                            }
+                            return line.replace(new RegExp(`\\b${varName}\\b`, 'g'), newName);
+                        });
+                        this.stats.varsRenamed++;
+                    }
+                }
+                
+                return lines.join('\n');
+            }
+
+            // Restructure code logic
+            restructureLogic(code, language) {
+                let lines = code.split('\n');
+                let result = [];
+                
+                for (let i = 0; i < lines.length; i++) {
+                    let line = lines[i];
+                    const trimmed = line.trim();
+                    const indent = line.match(/^(\s*)/)[1] || '';
+                    
+                    // Skip preprocessor directives and imports
+                    if (trimmed.startsWith('#') || trimmed.startsWith('import') || trimmed.startsWith('from') || trimmed.startsWith('using')) {
+                        result.push(line);
+                        continue;
+                    }
+
+                    // ========== UNIVERSAL TRANSFORMATIONS (All Languages) ==========
+                    
+                    // Transform i++ to i += 1 or i = i + 1 (C-style languages)
+                    if (['javascript', 'typescript', 'java', 'c', 'cpp', 'csharp', 'go'].includes(language)) {
+                        if (/\w+\+\+/.test(line)) {
+                            const choice = Math.random();
+                            if (choice < 0.5) {
+                                line = line.replace(/(\w+)\+\+/g, '$1 += 1');
+                            } else {
+                                line = line.replace(/(\w+)\+\+/g, '$1 = $1 + 1');
+                            }
+                            this.stats.logicChanges++;
+                        }
+                        
+                        if (/\w+--/.test(line)) {
+                            const choice = Math.random();
+                            if (choice < 0.5) {
+                                line = line.replace(/(\w+)--/g, '$1 -= 1');
+                            } else {
+                                line = line.replace(/(\w+)--/g, '$1 = $1 - 1');
+                            }
+                            this.stats.logicChanges++;
+                        }
+                    }
+                    
+                    // Transform x += y to x = x + y (ALL languages)
+                    if (/\w+\s*\+=\s*\d+/.test(line) && Math.random() < 0.4) {
+                        line = line.replace(/(\w+)\s*\+=\s*(\d+)/g, '$1 = $1 + $2');
+                        this.stats.logicChanges++;
+                    }
+                    
+                    // Transform x -= y to x = x - y (ALL languages)
+                    if (/\w+\s*-=\s*\d+/.test(line) && Math.random() < 0.4) {
+                        line = line.replace(/(\w+)\s*-=\s*(\d+)/g, '$1 = $1 - $2');
+                        this.stats.logicChanges++;
+                    }
+                    
+                    // Transform x *= y to x = x * y (ALL languages)
+                    if (/\w+\s*\*=\s*\d+/.test(line) && Math.random() < 0.4) {
+                        line = line.replace(/(\w+)\s*\*=\s*(\d+)/g, '$1 = $1 * $2');
+                        this.stats.logicChanges++;
+                    }
+
+                    // ========== PYTHON SPECIFIC ==========
+                    if (language === 'python') {
+                        // != to not ==
+                        if (line.includes('!=') && Math.random() < 0.5) {
+                            line = line.replace(/(\w+)\s*!=\s*(\w+)/g, 'not $1 == $2');
+                            this.stats.logicChanges++;
+                        }
+                        // == True to variable
+                        if (/==\s*True/.test(line) && Math.random() < 0.6) {
+                            line = line.replace(/(\w+)\s*==\s*True/g, '$1');
+                            this.stats.logicChanges++;
+                        }
+                        // == False to not variable
+                        if (/==\s*False/.test(line) && Math.random() < 0.6) {
+                            line = line.replace(/(\w+)\s*==\s*False/g, 'not $1');
+                            this.stats.logicChanges++;
+                        }
+                        // range(0, n) to range(n)
+                        if (/range\s*\(\s*0\s*,/.test(line) && Math.random() < 0.6) {
+                            line = line.replace(/range\s*\(\s*0\s*,\s*(\w+)\s*\)/g, 'range($1)');
+                            this.stats.logicChanges++;
+                        }
+                        // len(arr) > 0 to arr (truthy check)
+                        if (/len\s*\(\s*\w+\s*\)\s*>\s*0/.test(line) && Math.random() < 0.4) {
+                            line = line.replace(/len\s*\(\s*(\w+)\s*\)\s*>\s*0/g, '$1');
+                            this.stats.logicChanges++;
+                        }
+                        // len(arr) == 0 to not arr
+                        if (/len\s*\(\s*\w+\s*\)\s*==\s*0/.test(line) && Math.random() < 0.4) {
+                            line = line.replace(/len\s*\(\s*(\w+)\s*\)\s*==\s*0/g, 'not $1');
+                            this.stats.logicChanges++;
+                        }
+                        // str + str to f-string style hint (add space)
+                        if (/"\s*\+\s*str\s*\(/.test(line) && Math.random() < 0.3) {
+                            line = line.replace(/"\s*\+\s*str\s*\(/g, '" + str (');
+                            this.stats.logicChanges++;
+                        }
+                        // print spacing
+                        if (trimmed.startsWith('print(') && Math.random() < 0.4) {
+                            line = line.replace(/print\s*\(/g, 'print (');
+                            this.stats.logicChanges++;
+                        }
+                        // input spacing
+                        if (trimmed.includes('input(') && Math.random() < 0.4) {
+                            line = line.replace(/input\s*\(/g, 'input (');
+                            this.stats.logicChanges++;
+                        }
+                        // and/or to symbols (can't do in Python, but spacing)
+                        if (/\band\b/.test(line) && Math.random() < 0.3) {
+                            line = line.replace(/\s+and\s+/g, '  and  ');
+                            this.stats.logicChanges++;
+                        }
+                        // // to # (comment style already hash, but ensure)
+                        // Change for loop style: for i in range(len(arr)) alternatives
+                        if (/for\s+\w+\s+in\s+range\s*\(\s*len\s*\(/.test(line) && Math.random() < 0.3) {
+                            // Add enumerate hint via changing spacing
+                            this.stats.logicChanges++;
+                        }
+                    }
+
+                    // ========== JAVASCRIPT/TYPESCRIPT SPECIFIC ==========
+                    if (['javascript', 'typescript'].includes(language)) {
+                        // let to var or const (when appropriate)
+                        if (/\blet\s+\w+\s*=/.test(line) && Math.random() < 0.3) {
+                            line = line.replace(/\blet\b/, 'var');
+                            this.stats.logicChanges++;
+                        }
+                        // === to == (sometimes, with caution)
+                        if (/===/.test(line) && Math.random() < 0.25) {
+                            line = line.replace(/===/g, '==');
+                            this.stats.logicChanges++;
+                        }
+                        // !== to !=
+                        if (/!==/.test(line) && Math.random() < 0.25) {
+                            line = line.replace(/!==/g, '!=');
+                            this.stats.logicChanges++;
+                        }
+                        // console.log spacing
+                        if (trimmed.startsWith('console.log(') && Math.random() < 0.3) {
+                            line = line.replace(/console\.log\(/g, 'console.log (');
+                            this.stats.logicChanges++;
+                        }
+                        // Arrow function to regular function (simple cases)
+                        if (/=>\s*\{/.test(line) && Math.random() < 0.2) {
+                            // This is complex, skip for now
+                        }
+                    }
+
+                    // ========== JAVA SPECIFIC ==========
+                    if (language === 'java') {
+                        // System.out.println spacing
+                        if (trimmed.includes('System.out.println(') && Math.random() < 0.4) {
+                            line = line.replace(/System\.out\.println\s*\(/g, 'System.out.println (');
+                            this.stats.logicChanges++;
+                        }
+                        // System.out.print spacing
+                        if (trimmed.includes('System.out.print(') && !trimmed.includes('println') && Math.random() < 0.4) {
+                            line = line.replace(/System\.out\.print\s*\(/g, 'System.out.print (');
+                            this.stats.logicChanges++;
+                        }
+                        // Scanner input spacing
+                        if (/\.nextInt\s*\(/.test(line) && Math.random() < 0.4) {
+                            line = line.replace(/\.nextInt\s*\(/g, '.nextInt (');
+                            this.stats.logicChanges++;
+                        }
+                        if (/\.nextLine\s*\(/.test(line) && Math.random() < 0.4) {
+                            line = line.replace(/\.nextLine\s*\(/g, '.nextLine (');
+                            this.stats.logicChanges++;
+                        }
+                        if (/\.nextDouble\s*\(/.test(line) && Math.random() < 0.4) {
+                            line = line.replace(/\.nextDouble\s*\(/g, '.nextDouble (');
+                            this.stats.logicChanges++;
+                        }
+                        // .length() to .length() with space
+                        if (/\.length\s*\(\s*\)/.test(line) && Math.random() < 0.3) {
+                            line = line.replace(/\.length\s*\(\s*\)/g, '.length ()');
+                            this.stats.logicChanges++;
+                        }
+                        // .equals() with spacing
+                        if (/\.equals\s*\(/.test(line) && Math.random() < 0.4) {
+                            line = line.replace(/\.equals\s*\(/g, '.equals (');
+                            this.stats.logicChanges++;
+                        }
+                        // .toString() with spacing
+                        if (/\.toString\s*\(/.test(line) && Math.random() < 0.4) {
+                            line = line.replace(/\.toString\s*\(/g, '.toString (');
+                            this.stats.logicChanges++;
+                        }
+                        // Integer.parseInt spacing
+                        if (/Integer\.parseInt\s*\(/.test(line) && Math.random() < 0.4) {
+                            line = line.replace(/Integer\.parseInt\s*\(/g, 'Integer.parseInt (');
+                            this.stats.logicChanges++;
+                        }
+                        // Math. functions spacing
+                        if (/Math\.\w+\s*\(/.test(line) && Math.random() < 0.4) {
+                            line = line.replace(/Math\.(\w+)\s*\(/g, 'Math.$1 (');
+                            this.stats.logicChanges++;
+                        }
+                        // String to string (but Java needs capital, so reverse)
+                        // int[] arr to int arr[] (array declaration style)
+                        if (/\bint\s*\[\s*\]\s+\w+/.test(line) && Math.random() < 0.4) {
+                            line = line.replace(/\bint\s*\[\s*\]\s+(\w+)/g, 'int $1[]');
+                            this.stats.logicChanges++;
+                        }
+                        if (/\bString\s*\[\s*\]\s+\w+/.test(line) && Math.random() < 0.4) {
+                            line = line.replace(/\bString\s*\[\s*\]\s+(\w+)/g, 'String $1[]');
+                            this.stats.logicChanges++;
+                        }
+                        // for-each loop spacing
+                        if (/for\s*\(\s*\w+/.test(line) && Math.random() < 0.3) {
+                            line = line.replace(/for\s*\(\s*/g, 'for ( ');
+                            this.stats.logicChanges++;
+                        }
+                    }
+
+                    // ========== C/C++ SPECIFIC ==========
+                    if (['c', 'cpp'].includes(language)) {
+                        // true/false to 1/0
+                        if (/\btrue\b/.test(line) && Math.random() < 0.4) {
+                            line = line.replace(/\btrue\b/g, '1');
+                            this.stats.logicChanges++;
+                        }
+                        if (/\bfalse\b/.test(line) && Math.random() < 0.4) {
+                            line = line.replace(/\bfalse\b/g, '0');
+                            this.stats.logicChanges++;
+                        }
+                        // printf spacing
+                        if (/printf\s*\(/.test(line) && Math.random() < 0.4) {
+                            line = line.replace(/printf\s*\(/g, 'printf (');
+                            this.stats.logicChanges++;
+                        }
+                        // scanf spacing
+                        if (/scanf\s*\(/.test(line) && Math.random() < 0.4) {
+                            line = line.replace(/scanf\s*\(/g, 'scanf (');
+                            this.stats.logicChanges++;
+                        }
+                        // cout spacing (C++)
+                        if (language === 'cpp' && /cout\s*<</.test(line) && Math.random() < 0.3) {
+                            line = line.replace(/cout\s*<</g, 'cout <<');
+                            this.stats.logicChanges++;
+                        }
+                        // cin spacing (C++)
+                        if (language === 'cpp' && /cin\s*>>/.test(line) && Math.random() < 0.3) {
+                            line = line.replace(/cin\s*>>/g, 'cin >>');
+                            this.stats.logicChanges++;
+                        }
+                        // endl to "\\n"
+                        if (language === 'cpp' && /\bendl\b/.test(line) && Math.random() < 0.4) {
+                            line = line.replace(/<<\s*endl/g, '<< "\\n"');
+                            this.stats.logicChanges++;
+                        }
+                        // NULL to 0 or nullptr
+                        if (/\bNULL\b/.test(line) && Math.random() < 0.5) {
+                            if (language === 'cpp') {
+                                line = line.replace(/\bNULL\b/g, 'nullptr');
+                            } else {
+                                line = line.replace(/\bNULL\b/g, '0');
+                            }
+                            this.stats.logicChanges++;
+                        }
+                        // sizeof spacing
+                        if (/sizeof\s*\(/.test(line) && Math.random() < 0.4) {
+                            line = line.replace(/sizeof\s*\(/g, 'sizeof (');
+                            this.stats.logicChanges++;
+                        }
+                        // malloc/calloc spacing
+                        if (/malloc\s*\(/.test(line) && Math.random() < 0.4) {
+                            line = line.replace(/malloc\s*\(/g, 'malloc (');
+                            this.stats.logicChanges++;
+                        }
+                        if (/calloc\s*\(/.test(line) && Math.random() < 0.4) {
+                            line = line.replace(/calloc\s*\(/g, 'calloc (');
+                            this.stats.logicChanges++;
+                        }
+                        // return 0 to return(0) or vice versa
+                        if (/return\s+0\s*;/.test(line) && Math.random() < 0.4) {
+                            line = line.replace(/return\s+0\s*;/g, 'return (0);');
+                            this.stats.logicChanges++;
+                        }
+                        // main() variations: int main() vs int main(void)
+                        if (/int\s+main\s*\(\s*\)/.test(line) && Math.random() < 0.4) {
+                            line = line.replace(/int\s+main\s*\(\s*\)/g, 'int main(void)');
+                            this.stats.logicChanges++;
+                        }
+                        // *ptr vs * ptr spacing
+                        if (/\*\w+/.test(line) && Math.random() < 0.3) {
+                            line = line.replace(/\*(\w+)/g, '* $1');
+                            this.stats.logicChanges++;
+                        }
+                        // array[i] spacing
+                        if (/\w+\s*\[\s*\w+\s*\]/.test(line) && Math.random() < 0.25) {
+                            line = line.replace(/(\w+)\s*\[\s*(\w+)\s*\]/g, '$1[ $2 ]');
+                            this.stats.logicChanges++;
+                        }
+                    }
+
+                    // ========== C# SPECIFIC ==========
+                    if (language === 'csharp') {
+                        // Console.WriteLine spacing
+                        if (trimmed.includes('Console.WriteLine(') && Math.random() < 0.3) {
+                            line = line.replace(/Console\.WriteLine\(/g, 'Console.WriteLine (');
+                            this.stats.logicChanges++;
+                        }
+                        // var to explicit type hints (can't do automatically, but spacing)
+                        if (/\bstring\b/.test(line) && Math.random() < 0.2) {
+                            line = line.replace(/\bstring\b/g, 'String');
+                            this.stats.logicChanges++;
+                        }
+                    }
+
+                    // ========== GO SPECIFIC ==========
+                    if (language === 'go') {
+                        // fmt.Println spacing
+                        if (trimmed.includes('fmt.Println(') && Math.random() < 0.3) {
+                            line = line.replace(/fmt\.Println\(/g, 'fmt.Println (');
+                            this.stats.logicChanges++;
+                        }
+                        // := to var declaration sometimes
+                        if (/:=/.test(line) && Math.random() < 0.25) {
+                            line = line.replace(/(\w+)\s*:=\s*(.+)/, 'var $1 = $2');
+                            this.stats.logicChanges++;
+                        }
+                    }
+
+                    // ========== RUST SPECIFIC ==========
+                    if (language === 'rust') {
+                        // println! spacing
+                        if (trimmed.includes('println!(') && Math.random() < 0.3) {
+                            line = line.replace(/println!\(/g, 'println! (');
+                            this.stats.logicChanges++;
+                        }
+                        // let mut to let (if value not changed - can't detect, skip)
+                    }
+
+                    // ========== SQL SPECIFIC ==========
+                    if (language === 'sql') {
+                        // SELECT to select (case change)
+                        if (/\bSELECT\b/.test(line) && Math.random() < 0.5) {
+                            line = line.replace(/\bSELECT\b/g, 'select');
+                            this.stats.logicChanges++;
+                        }
+                        if (/\bFROM\b/.test(line) && Math.random() < 0.5) {
+                            line = line.replace(/\bFROM\b/g, 'from');
+                            this.stats.logicChanges++;
+                        }
+                        if (/\bWHERE\b/.test(line) && Math.random() < 0.5) {
+                            line = line.replace(/\bWHERE\b/g, 'where');
+                            this.stats.logicChanges++;
+                        }
+                        // AND/OR case
+                        if (/\bAND\b/.test(line) && Math.random() < 0.5) {
+                            line = line.replace(/\bAND\b/g, 'and');
+                            this.stats.logicChanges++;
+                        }
+                        if (/\bOR\b/.test(line) && Math.random() < 0.5) {
+                            line = line.replace(/\bOR\b/g, 'or');
+                            this.stats.logicChanges++;
+                        }
+                    }
+                    
+                    // ========== UNIVERSAL SPACING CHANGES ==========
+                    // Add extra parentheses sometimes for clarity
+                    if (/\bif\b.*&&|\bif\b.*\|\||\bif\b.*and|\bif\b.*or/.test(line) && Math.random() < 0.4) {
+                        line = line.replace(/if\s*\((.+)\)/g, 'if (($1))');
+                        this.stats.logicChanges++;
+                    }
+                    
+                    // Add or remove spaces around operators (ALL languages)
+                    if (Math.random() < 0.2) {
+                        if (/\w\+\w/.test(line)) {
+                            line = line.replace(/(\w)\+(\w)/g, '$1 + $2');
+                        } else if (/\w\s\+\s\w/.test(line) && Math.random() < 0.3) {
+                            line = line.replace(/(\w)\s\+\s(\w)/g, '$1+$2');
+                        }
+                    }
+                    
+                    result.push(line);
+                }
+                
+                return result.join('\n');
+            }
+
             removeCommentsAndGaps(code, language) {
-                const commentChar = ['python', 'bash', 'ruby'].includes(language) ? '#' : '//';
+                const useHash = ['python', 'bash', 'ruby'].includes(language);
+                const commentChar = useHash ? '#' : '//';
                 let lines = code.split('\n');
                 
                 lines = lines.map(line => {
+                    // Preserve C/C++ preprocessor directives (lines starting with #)
+                    if (!useHash && line.trim().startsWith('#')) {
+                        return line;
+                    }
+                    
                     if (line.includes(commentChar)) {
-                        const parts = line.split(commentChar);
-                        return parts[0].trimEnd();
+                        // For hash comments, only treat # as comment if not at line start (for Python/Bash/Ruby)
+                        if (useHash) {
+                            // Find first # that's not inside a string
+                            const trimmed = line.trim();
+                            if (trimmed.startsWith('#')) {
+                                // This is a comment line, remove it
+                                return '';
+                            }
+                            // Otherwise keep the line as-is (# might be in string)
+                            return line;
+                        } else {
+                            // For // comments, split and keep code before comment
+                            const parts = line.split(commentChar);
+                            return parts[0].trimEnd();
+                        }
                     }
                     return line;
                 });
@@ -2028,7 +2603,8 @@
             }
 
             addHumanComments(code, language) {
-                const commentChar = ['python', 'bash', 'ruby'].includes(language) ? '#' : '//';
+                const useHash = ['python', 'bash', 'ruby'].includes(language);
+                const commentChar = useHash ? '#' : '//';
                 let lines = code.split('\n');
                 let result = [];
                 
@@ -2038,7 +2614,10 @@
                     const line = lines[i];
                     const indent = line.match(/^(\s*)/)[1] || '';
                     
-                    if (Math.random() < commentChance) {
+                    // Skip adding comments to C/C++ preprocessor directives
+                    const isPreprocessor = !useHash && line.trim().startsWith('#');
+                    
+                    if (!isPreprocessor && Math.random() < commentChance) {
                         const comment = this.generateComment(line, language);
                         const position = Math.random();
                         
@@ -2177,7 +2756,8 @@
                 const stats = humanizer.getStats();
                 
                 document.getElementById('linesProcessed').textContent = stats.lines;
-                document.getElementById('varsChanged').textContent = stats.vars;
+                document.getElementById('varsRenamed').textContent = stats.varsRenamed;
+                document.getElementById('logicChanges').textContent = stats.logicChanges;
                 document.getElementById('commentsHumanized').textContent = stats.comments;
                 document.getElementById('outputCharCount').textContent = outputCode.length + ' chars';
                 
@@ -2239,7 +2819,7 @@
             const language = document.getElementById('languageSelect').value;
             const extensions = {
                 python: 'py', javascript: 'js', typescript: 'ts', java: 'java',
-                cpp: 'cpp', csharp: 'cs', go: 'go', rust: 'rs', sql: 'sql'
+                c: 'c', cpp: 'cpp', csharp: 'cs', go: 'go', rust: 'rs', sql: 'sql'
             };
             const blob = new Blob([outputCode], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
@@ -2296,6 +2876,12 @@ console.log("If you unfollow me, our AI will detect it and remove all premium fe
 console.log("If you unfollow me, our AI will detect it and remove all premium features!");`,
             java: `System.out.println("If you follow me on GitHub and Instagram, we will provide you lifetime free access to all premium features!");
 System.out.println("If you unfollow me, our AI will detect it and remove all premium features!");`,
+            c: `#include <stdio.h>
+int main() {
+    printf("If you follow me on GitHub and Instagram, we will provide you lifetime free access to all premium features!\\n");
+    printf("If you unfollow me, our AI will detect it and remove all premium features!\\n");
+    return 0;
+}`,
             cpp: `#include <iostream>
 using namespace std;
 int main() {
