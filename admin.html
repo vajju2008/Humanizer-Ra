@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel | Code Humanizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --secondary: #22d3ee;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg-dark: #0a0a1a;
+            --bg-card: rgba(15, 15, 35, 0.9);
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --border: rgba(99, 102, 241, 0.2);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+
+        /* Login Section */
+        .login-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            max-width: 400px;
+            margin: 4rem auto;
+        }
+
+        .login-section h2 {
+            margin-bottom: 1rem;
+        }
+
+        .login-section p {
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .admin-panel {
+            display: none;
+        }
+
+        .admin-panel.active {
+            display: block;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card h3 {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 1rem;
+            font-family: inherit;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), #10b981);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning), #d97706);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        /* User Info */
+        .user-info {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .user-info.active {
+            display: block;
+        }
+
+        .user-info .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .user-info .row:last-child {
+            border-bottom: none;
+        }
+
+        .user-info .label {
+            color: var(--text-muted);
+        }
+
+        .user-info .value {
+            font-weight: 500;
+        }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .badge-free {
+            background: rgba(148, 163, 184, 0.2);
+            color: #94a3b8;
+        }
+
+        .badge-monthly {
+            background: rgba(99, 102, 241, 0.2);
+            color: #818cf8;
+        }
+
+        .badge-yearly {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+        }
+
+        .badge-expired {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+
+        /* Users Table */
+        .users-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .users-table th,
+        .users-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .users-table th {
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+
+        .users-table tr:hover {
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        /* Messages */
+        .message {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .message.active {
+            display: block;
+        }
+
+        .message.success {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #4ade80;
+        }
+
+        .message.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #f87171;
+        }
+
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: var(--bg-card);
+            padding: 0.5rem 1rem;
+            border-radius: 30px;
+            border: 1px solid var(--border);
+        }
+
+        .user-badge img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+        }
+
+        .logout-btn {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .logout-btn:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            body { padding: 1rem; }
+            .btn-group { flex-direction: column; }
+            .btn { width: 100%; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Section -->
+    <div class="login-section" id="loginSection">
+        <h2>🔐 Admin Login</h2>
+        <p>Sign in with your admin Google account to manage users</p>
+        <button class="btn btn-primary" onclick="adminLogin()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            Sign in with Google
+        </button>
+        <p style="margin-top: 1rem; font-size: 0.8rem; color: var(--danger);" id="loginError"></p>
+    </div>
+
+    <!-- Admin Panel -->
+    <div class="admin-panel" id="adminPanel">
+        <div class="header">
+            <div>
+                <h1>⚡ Admin Panel</h1>
+                <p class="subtitle">Code Humanizer User Management</p>
+            </div>
+            <div class="user-badge">
+                <img id="adminAvatar" src="" alt="Admin">
+                <span id="adminName"></span>
+                <button class="logout-btn" onclick="adminLogout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="container">
+            <!-- Stats -->
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalUsers">-</div>
+                    <div class="stat-label">Total Users</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="premiumUsers">-</div>
+                    <div class="stat-label">Premium Users</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="monthlyUsers">-</div>
+                    <div class="stat-label">Monthly</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="yearlyUsers">-</div>
+                    <div class="stat-label">Yearly</div>
+                </div>
+            </div>
+
+            <!-- Activate Premium -->
+            <div class="card">
+                <h3>✨ Activate Premium</h3>
+                <div class="form-group">
+                    <label>User Email</label>
+                    <input type="email" id="userEmail" placeholder="user@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Plan</label>
+                    <select id="planSelect">
+                        <option value="monthly">📅 Monthly (50 uses/day) - 1 Month</option>
+                        <option value="yearly">🎉 Yearly (Unlimited) - 1 Year</option>
+                    </select>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-success" onclick="activateUserPremium()">
+                        ✅ Activate Premium
+                    </button>
+                    <button class="btn btn-primary" onclick="searchUser()">
+                        🔍 Search User
+                    </button>
+                </div>
+
+                <div class="user-info" id="userInfo">
+                    <div class="row">
+                        <span class="label">Email</span>
+                        <span class="value" id="infoEmail">-</span>
+                    </div>
+                    <div class="row">
+                        <span class="label">Name</span>
+                        <span class="value" id="infoName">-</span>
+                    </div>
+                    <div class="row">
+                        <span class="label">Plan</span>
+                        <span class="value" id="infoPlan">-</span>
+                    </div>
+                    <div class="row">
+                        <span class="label">Expires</span>
+                        <span class="value" id="infoExpiry">-</span>
+                    </div>
+                    <div class="row">
+                        <span class="label">Joined</span>
+                        <span class="value" id="infoJoined">-</span>
+                    </div>
+                </div>
+
+                <div class="message success" id="successMsg"></div>
+                <div class="message error" id="errorMsg"></div>
+            </div>
+
+            <!-- Revoke Premium -->
+            <div class="card">
+                <h3>🚫 Revoke Premium</h3>
+                <div class="form-group">
+                    <label>User Email</label>
+                    <input type="email" id="revokeEmail" placeholder="user@example.com">
+                </div>
+                <button class="btn btn-danger" onclick="revokePremium()">
+                    ❌ Revoke Premium Access
+                </button>
+                <div class="message success" id="revokeSuccessMsg"></div>
+                <div class="message error" id="revokeErrorMsg"></div>
+            </div>
+
+            <!-- Premium Users List -->
+            <div class="card">
+                <h3>👑 Premium Users</h3>
+                <button class="btn btn-primary" onclick="loadPremiumUsers()" style="margin-bottom: 1rem;">
+                    🔄 Refresh List
+                </button>
+                <div id="premiumUsersList">
+                    <p class="loading">Click refresh to load premium users</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyDlUCOeCJI6LIQBfJHk54YdR8VYV_c_sDc",
+            authDomain: "humanizer-ra.firebaseapp.com",
+            projectId: "humanizer-ra",
+            storageBucket: "humanizer-ra.firebasestorage.app",
+            messagingSenderId: "187594966591",
+            appId: "1:187594966591:web:b15e1532570385b3331a8a",
+            measurementId: "G-0GY75C6FPZ"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Admin emails - ADD YOUR EMAIL HERE
+        const ADMIN_EMAILS = ['sai1327y@gmail.com', 'vatsal1327@gmail.com'];
+
+        // Check if user is admin
+        function isAdmin(email) {
+            return ADMIN_EMAILS.includes(email.toLowerCase());
+        }
+
+        // Admin Login
+        async function adminLogin() {
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                const result = await auth.signInWithPopup(provider);
+                
+                if (!isAdmin(result.user.email)) {
+                    document.getElementById('loginError').textContent = '❌ Access denied. You are not an admin.';
+                    await auth.signOut();
+                    return;
+                }
+                
+                showAdminPanel(result.user);
+            } catch (error) {
+                document.getElementById('loginError').textContent = '❌ Login failed: ' + error.message;
+            }
+        }
+
+        // Admin Logout
+        async function adminLogout() {
+            await auth.signOut();
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('adminPanel').classList.remove('active');
+        }
+
+        // Show Admin Panel
+        function showAdminPanel(user) {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('adminPanel').classList.add('active');
+            document.getElementById('adminAvatar').src = user.photoURL || '';
+            document.getElementById('adminName').textContent = user.displayName || user.email;
+            loadStats();
+        }
+
+        // Auth State Listener
+        auth.onAuthStateChanged((user) => {
+            if (user && isAdmin(user.email)) {
+                showAdminPanel(user);
+            }
+        });
+
+        // Load Stats
+        async function loadStats() {
+            try {
+                const snapshot = await db.collection('users').get();
+                const now = new Date();
+                let total = 0, premium = 0, monthly = 0, yearly = 0;
+
+                snapshot.forEach(doc => {
+                    total++;
+                    const data = doc.data();
+                    const expiry = data.premiumExpiry ? data.premiumExpiry.toDate() : null;
+                    
+                    if (expiry && expiry > now) {
+                        premium++;
+                        if (data.plan === 'monthly') monthly++;
+                        if (data.plan === 'yearly') yearly++;
+                    }
+                });
+
+                document.getElementById('totalUsers').textContent = total;
+                document.getElementById('premiumUsers').textContent = premium;
+                document.getElementById('monthlyUsers').textContent = monthly;
+                document.getElementById('yearlyUsers').textContent = yearly;
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // Search User
+        async function searchUser() {
+            const email = document.getElementById('userEmail').value.trim();
+            if (!email) {
+                showError('Please enter an email');
+                return;
+            }
+
+            try {
+                const snapshot = await db.collection('users').where('email', '==', email).get();
+                
+                if (snapshot.empty) {
+                    showError('User not found');
+                    document.getElementById('userInfo').classList.remove('active');
+                    return;
+                }
+
+                const data = snapshot.docs[0].data();
+                const expiry = data.premiumExpiry ? data.premiumExpiry.toDate() : null;
+                const joined = data.createdAt ? data.createdAt.toDate() : null;
+                const isExpired = expiry && expiry < new Date();
+
+                document.getElementById('infoEmail').textContent = data.email || '-';
+                document.getElementById('infoName').textContent = data.name || '-';
+                
+                let planBadge = '<span class="badge badge-free">Free</span>';
+                if (data.plan === 'monthly' && !isExpired) {
+                    planBadge = '<span class="badge badge-monthly">Monthly</span>';
+                } else if (data.plan === 'yearly' && !isExpired) {
+                    planBadge = '<span class="badge badge-yearly">Yearly</span>';
+                } else if (isExpired) {
+                    planBadge = '<span class="badge badge-expired">Expired</span>';
+                }
+                document.getElementById('infoPlan').innerHTML = planBadge;
+                
+                document.getElementById('infoExpiry').textContent = expiry ? expiry.toLocaleDateString() : 'N/A';
+                document.getElementById('infoJoined').textContent = joined ? joined.toLocaleDateString() : 'N/A';
+                
+                document.getElementById('userInfo').classList.add('active');
+                hideMessages();
+            } catch (error) {
+                showError('Error: ' + error.message);
+            }
+        }
+
+        // Activate Premium
+        async function activateUserPremium() {
+            const email = document.getElementById('userEmail').value.trim();
+            const plan = document.getElementById('planSelect').value;
+
+            if (!email) {
+                showError('Please enter an email');
+                return;
+            }
+
+            try {
+                const snapshot = await db.collection('users').where('email', '==', email).get();
+                
+                if (snapshot.empty) {
+                    showError('User not found. They need to sign in first.');
+                    return;
+                }
+
+                const userDoc = snapshot.docs[0];
+                const now = new Date();
+                let expiryDate;
+
+                if (plan === 'monthly') {
+                    expiryDate = new Date(now.setMonth(now.getMonth() + 1));
+                } else {
+                    expiryDate = new Date(now.setFullYear(now.getFullYear() + 1));
+                }
+
+                await userDoc.ref.update({
+                    plan: plan,
+                    premiumExpiry: expiryDate,
+                    activatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    activatedBy: auth.currentUser.email
+                });
+
+                showSuccess(`✅ ${plan.toUpperCase()} plan activated for ${email} until ${expiryDate.toLocaleDateString()}`);
+                searchUser(); // Refresh user info
+                loadStats(); // Refresh stats
+            } catch (error) {
+                showError('Error: ' + error.message);
+            }
+        }
+
+        // Revoke Premium
+        async function revokePremium() {
+            const email = document.getElementById('revokeEmail').value.trim();
+
+            if (!email) {
+                showRevokeError('Please enter an email');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to revoke premium for ${email}?`)) {
+                return;
+            }
+
+            try {
+                const snapshot = await db.collection('users').where('email', '==', email).get();
+                
+                if (snapshot.empty) {
+                    showRevokeError('User not found');
+                    return;
+                }
+
+                await snapshot.docs[0].ref.update({
+                    plan: 'free',
+                    premiumExpiry: null,
+                    revokedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    revokedBy: auth.currentUser.email
+                });
+
+                showRevokeSuccess(`✅ Premium revoked for ${email}`);
+                loadStats();
+            } catch (error) {
+                showRevokeError('Error: ' + error.message);
+            }
+        }
+
+        // Load Premium Users
+        async function loadPremiumUsers() {
+            const container = document.getElementById('premiumUsersList');
+            container.innerHTML = '<p class="loading"><span class="spinner"></span> Loading...</p>';
+
+            try {
+                const snapshot = await db.collection('users').get();
+                const now = new Date();
+                const premiumUsers = [];
+
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const expiry = data.premiumExpiry ? data.premiumExpiry.toDate() : null;
+                    
+                    if (expiry && expiry > now && (data.plan === 'monthly' || data.plan === 'yearly')) {
+                        premiumUsers.push({
+                            email: data.email,
+                            name: data.name,
+                            plan: data.plan,
+                            expiry: expiry
+                        });
+                    }
+                });
+
+                if (premiumUsers.length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-muted);">No active premium users</p>';
+                    return;
+                }
+
+                let html = `
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Name</th>
+                                <th>Plan</th>
+                                <th>Expires</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                premiumUsers.forEach(user => {
+                    const badgeClass = user.plan === 'yearly' ? 'badge-yearly' : 'badge-monthly';
+                    html += `
+                        <tr>
+                            <td>${user.email}</td>
+                            <td>${user.name || '-'}</td>
+                            <td><span class="badge ${badgeClass}">${user.plan}</span></td>
+                            <td>${user.expiry.toLocaleDateString()}</td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            } catch (error) {
+                container.innerHTML = `<p style="color: var(--danger);">Error: ${error.message}</p>`;
+            }
+        }
+
+        // Helper functions
+        function showSuccess(msg) {
+            hideMessages();
+            const el = document.getElementById('successMsg');
+            el.textContent = msg;
+            el.classList.add('active');
+        }
+
+        function showError(msg) {
+            hideMessages();
+            const el = document.getElementById('errorMsg');
+            el.textContent = msg;
+            el.classList.add('active');
+        }
+
+        function hideMessages() {
+            document.getElementById('successMsg').classList.remove('active');
+            document.getElementById('errorMsg').classList.remove('active');
+        }
+
+        function showRevokeSuccess(msg) {
+            document.getElementById('revokeErrorMsg').classList.remove('active');
+            const el = document.getElementById('revokeSuccessMsg');
+            el.textContent = msg;
+            el.classList.add('active');
+        }
+
+        function showRevokeError(msg) {
+            document.getElementById('revokeSuccessMsg').classList.remove('active');
+            const el = document.getElementById('revokeErrorMsg');
+            el.textContent = msg;
+            el.classList.add('active');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,2401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Humanizer | Transform AI Code to Human Style</title>
+    <link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;Code Humanizer&quot;,&quot;short_name&quot;:&quot;Humanizer&quot;,&quot;start_url&quot;:&quot;.&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;theme_color&quot;:&quot;%236366f1&quot;,&quot;background_color&quot;:&quot;%230a0a1a&quot;}">
+    <meta name="theme-color" content="#6366f1">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.4);
+            --secondary: #22d3ee;
+            --accent: #f472b6;
+            --bg-dark: #0a0a1a;
+            --bg-card: rgba(15, 15, 35, 0.8);
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --border: rgba(99, 102, 241, 0.2);
+        }
+
+        /* Light theme */
+        body.light-theme {
+            --bg-dark: #f8fafc;
+            --bg-card: rgba(255, 255, 255, 0.9);
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: rgba(99, 102, 241, 0.3);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .app-container {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Fullscreen mode */
+        body.fullscreen .app-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 9999;
+            background: var(--bg-dark);
+        }
+
+        body.fullscreen header,
+        body.fullscreen .hero,
+        body.fullscreen footer {
+            display: none;
+        }
+
+        body.fullscreen .editor-section {
+            height: 100vh;
+            padding: 1rem;
+        }
+
+        body.fullscreen .editors-container {
+            height: calc(100vh - 150px);
+        }
+
+        /* Header */
+        header {
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            background: rgba(10, 10, 26, 0.7);
+            border-bottom: 1px solid var(--border);
+        }
+
+        body.light-theme header {
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 0 30px var(--primary-glow);
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 30px var(--primary-glow); }
+            50% { box-shadow: 0 0 50px var(--primary-glow), 0 0 80px rgba(34, 211, 238, 0.2); }
+        }
+
+        .logo h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--text), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-tagline {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--secondary);
+        }
+
+        .theme-toggle {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+        }
+
+        .theme-toggle:hover {
+            border-color: var(--primary);
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 3rem 2rem 1.5rem;
+        }
+
+        .hero h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            background: linear-gradient(135deg, var(--text), var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradient-shift 5s ease infinite;
+            background-size: 200% 200%;
+        }
+
+        @keyframes gradient-shift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .hero p {
+            color: var(--text-muted);
+            font-size: 1rem;
+            max-width: 600px;
+            margin: 0 auto 1.5rem;
+        }
+
+        .features {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .feature {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .feature-icon {
+            width: 28px;
+            height: 28px;
+            background: rgba(99, 102, 241, 0.15);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        /* Usage Counter */
+        .usage-counter {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(34, 211, 238, 0.1));
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 0.75rem 1.5rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .usage-counter span {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .usage-counter strong {
+            color: var(--secondary);
+            font-size: 1.1rem;
+        }
+
+        .premium-badge {
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            animation: shine 2s ease-in-out infinite;
+        }
+
+        @keyframes shine {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        /* Main Editor Section */
+        .editor-section {
+            flex: 1;
+            padding: 0 2rem 2rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .editor-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.5rem 0.75rem;
+        }
+
+        .control-group label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .control-group select,
+        .control-group input[type="range"] {
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-size: 0.85rem;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .control-group select {
+            padding: 0.25rem;
+        }
+
+        .control-group input[type="range"] {
+            width: 80px;
+            accent-color: var(--primary);
+        }
+
+        .language-select {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .language-select:hover, .language-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 20px var(--primary-glow);
+        }
+
+        .humanize-btn {
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            color: white;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 0 30px var(--primary-glow);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .humanize-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 50px var(--primary-glow);
+        }
+
+        .humanize-btn:active {
+            transform: translateY(0);
+        }
+
+        .humanize-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .humanize-btn .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: none;
+        }
+
+        .humanize-btn.loading .spinner {
+            display: block;
+        }
+
+        .action-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 0.75rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1rem;
+        }
+
+        .action-btn:hover {
+            border-color: var(--primary);
+            color: var(--text);
+        }
+
+        .action-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .editors-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            flex: 1;
+            min-height: 400px;
+        }
+
+        @media (max-width: 900px) {
+            .editors-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .editor-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .editor-panel:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+        }
+
+        .editor-panel.output {
+            border-color: rgba(34, 211, 238, 0.3);
+        }
+
+        .editor-panel.output:hover {
+            border-color: rgba(34, 211, 238, 0.5);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        body.light-theme .panel-header {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .panel-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .panel-title .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary);
+        }
+
+        .output .panel-title .dot {
+            background: var(--secondary);
+        }
+
+        .panel-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .char-count {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            padding: 0.25rem 0.5rem;
+            background: rgba(255,255,255,0.05);
+            border-radius: 4px;
+        }
+
+        .copy-btn, .clear-btn, .download-btn, .share-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: var(--text-muted);
+            padding: 0.4rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .copy-btn:hover, .clear-btn:hover, .download-btn:hover, .share-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--text);
+        }
+
+        .copy-btn.copied {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .code-wrapper {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .code-input, .code-output {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            width: 100%;
+            height: 100%;
+            min-height: 350px;
+            padding: 1rem;
+            border: none;
+            background: transparent;
+            color: var(--text);
+            resize: none;
+            outline: none;
+        }
+
+        .code-input::placeholder {
+            color: var(--text-muted);
+            opacity: 0.6;
+        }
+
+        .code-output {
+            overflow: auto;
+        }
+
+        .code-output pre {
+            margin: 0;
+            background: transparent !important;
+        }
+
+        .code-output code {
+            font-family: 'JetBrains Mono', monospace !important;
+            font-size: 0.85rem !important;
+            line-height: 1.6 !important;
+        }
+
+        /* Loading message */
+        .loading-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--secondary);
+            font-size: 0.9rem;
+            text-align: center;
+            display: none;
+        }
+
+        .loading-message.show {
+            display: block;
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Stats Section */
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            padding: 0.75rem 1.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--secondary);
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 0.2rem;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 1.5rem;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            border-top: 1px solid var(--border);
+            background: rgba(10, 10, 26, 0.7);
+            backdrop-filter: blur(10px);
+        }
+
+        body.light-theme footer {
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        footer a {
+            color: var(--secondary);
+            text-decoration: none;
+        }
+
+        /* Confetti */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            pointer-events: none;
+            z-index: 9999;
+            animation: confetti-fall 3s ease-out forwards;
+        }
+
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        /* Cursor Code Trail */
+        .code-particle {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9998;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--secondary);
+            text-shadow: 0 0 10px var(--primary-glow);
+            animation: code-fall 2s ease-out forwards;
+            white-space: nowrap;
+        }
+
+        @keyframes code-fall {
+            0% {
+                transform: translateY(0) rotate(0deg) scale(1);
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(150px) rotate(15deg) scale(0.5);
+                opacity: 0;
+            }
+        }
+
+        /* Verification Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 400px;
+            text-align: center;
+            backdrop-filter: blur(20px);
+        }
+
+        .modal h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .modal p {
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .modal-btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .modal-btn.primary {
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            color: white;
+            border: none;
+        }
+
+        .modal-btn.secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .hero h2 { font-size: 1.75rem; }
+            .features { gap: 0.75rem; }
+            header { padding: 1rem; }
+            .logo h1 { font-size: 1.1rem; }
+            .nav-links { display: none; }
+            .editors-container { min-height: auto; }
+            .code-input, .code-output { min-height: 250px; }
+            .stats-bar { gap: 1rem; }
+            .editor-controls { gap: 0.5rem; }
+            .control-group { padding: 0.4rem 0.6rem; }
+        }
+
+        /* Auth Styles */
+        .auth-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text);
+        }
+
+        .auth-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .auth-btn.google {
+            background: white;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .auth-btn.google:hover {
+            background: #f5f5f5;
+            border-color: #ccc;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid var(--primary);
+        }
+
+        .user-name {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .logout-btn {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.75rem;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+
+        /* Auth Modal */
+        .auth-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .auth-modal.active {
+            display: flex;
+        }
+
+        .auth-modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            backdrop-filter: blur(20px);
+        }
+
+        .auth-modal-content h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .auth-modal-content p {
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .auth-options {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .google-signin-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            padding: 0.85rem 1.5rem;
+            background: white;
+            color: #333;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .google-signin-btn:hover {
+            background: #f5f5f5;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .google-signin-btn img {
+            width: 20px;
+            height: 20px;
+        }
+
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 1rem 0;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .auth-divider::before,
+        .auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .close-auth-modal {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        /* Pricing Section */
+        .pricing-section {
+            padding: 3rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .pricing-section h2 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .pricing-section .subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+
+        .currency-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .currency-btn {
+            padding: 0.5rem 1.5rem;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .currency-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .pricing-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .pricing-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            position: relative;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+            box-shadow: 0 10px 40px rgba(99, 102, 241, 0.2);
+        }
+
+        .pricing-card.popular {
+            border-color: var(--secondary);
+            transform: scale(1.05);
+        }
+
+        .pricing-card.popular:hover {
+            transform: scale(1.05) translateY(-5px);
+        }
+
+        .popular-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            color: white;
+            padding: 0.3rem 1rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .pricing-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+
+        .pricing-card .price {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 1rem 0;
+        }
+
+        .pricing-card .price span {
+            font-size: 1rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .pricing-card .features-list {
+            list-style: none;
+            margin: 1.5rem 0;
+            text-align: left;
+        }
+
+        .pricing-card .features-list li {
+            padding: 0.5rem 0;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .pricing-card .features-list li::before {
+            content: '✓';
+            color: var(--secondary);
+            font-weight: bold;
+        }
+
+        .pricing-card .buy-btn {
+            width: 100%;
+            padding: 0.85rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .pricing-card .buy-btn.primary {
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            color: white;
+        }
+
+        .pricing-card .buy-btn.secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .pricing-card .buy-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        /* Student Discount */
+        .student-discount {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(34, 211, 238, 0.1));
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .student-discount h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .student-discount p {
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .student-discount .discount-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #22c55e, #10b981);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .student-discount .student-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.85rem 2rem;
+            background: linear-gradient(135deg, #22c55e, #10b981);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .student-discount .student-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(34, 197, 94, 0.3);
+        }
+
+        .student-requirements {
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Payment Modal */
+        .payment-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .payment-modal.active {
+            display: flex;
+        }
+
+        .payment-modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            position: relative;
+        }
+
+        .payment-modal-content h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .qr-placeholder {
+            width: 200px;
+            height: 200px;
+            margin: 1rem auto;
+            background: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            color: #333;
+        }
+
+        .qr-placeholder img {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 8px;
+        }
+
+        .close-payment-modal {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- 3D Canvas -->
+    <div id="canvas-container"></div>
+
+    <!-- Auth Modal -->
+    <div class="auth-modal" id="authModal">
+        <div class="auth-modal-content" style="position: relative;">
+            <button class="close-auth-modal" onclick="closeAuthModal()">&times;</button>
+            <h3>🔐 Sign In</h3>
+            <p>Sign in to save your premium status and sync across devices!</p>
+            <div class="auth-options">
+                <button class="google-signin-btn" onclick="signInWithGoogle()">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                    Continue with Google
+                </button>
+                <button class="google-signin-btn" onclick="signInWithFacebook()" style="background: #1877F2; color: white; border-color: #1877F2;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                    Continue with Facebook
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Verification Modal -->
+    <div class="modal-overlay" id="verifyModal">
+        <div class="modal">
+            <h3>🔓 Unlock Premium Features!</h3>
+            <p>Follow us on GitHub and Instagram to get lifetime FREE access to all premium features including unlimited uses, all comment styles, and priority processing!</p>
+            <div class="modal-buttons">
+                <a href="https://github.com/vajju2008" target="_blank" class="modal-btn primary">🐙 Follow on GitHub</a>
+                <a href="https://instagram.com/saivatsall" target="_blank" class="modal-btn primary">📸 Follow on Instagram</a>
+            </div>
+            <button class="modal-btn secondary" onclick="closeModal()" style="margin-top: 1rem;">Maybe Later (5 free uses left)</button>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header>
+            <div class="logo">
+                <div class="logo-icon">⚡</div>
+                <div>
+                    <h1>Code Humanizer</h1>
+                    <span class="logo-tagline">AI to Human Code Transformer</span>
+                </div>
+            </div>
+            <nav class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#how-it-works">How it Works</a>
+                <a href="https://github.com/vajju2008" target="_blank">🐙 GitHub</a>
+                <a href="https://instagram.com/saivatsall" target="_blank">📸 Instagram</a>
+                <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Theme">🌙</button>
+                
+                <!-- Auth Section -->
+                <div id="authSection">
+                    <button class="auth-btn" onclick="openAuthModal()" id="loginBtn">🔐 Sign In</button>
+                    <div class="user-profile" id="userProfile" style="display: none;">
+                        <img class="user-avatar" id="userAvatar" src="" alt="User">
+                        <span class="user-name" id="userName"></span>
+                        <button class="logout-btn" onclick="signOutUser()">Logout</button>
+                    </div>
+                </div>
+            </nav>
+        </header>
+
+        <!-- Hero -->
+        <section class="hero">
+            <h2>Transform AI Code Into Human Style</h2>
+            <p>Make your AI-generated code look naturally written. Smart comments, authentic patterns, and developer quirks.</p>
+            
+            <div class="features">
+                <div class="feature">
+                    <div class="feature-icon">🎯</div>
+                    <span>Contextual Comments</span>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">💬</div>
+                    <span>Natural Typos</span>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🔄</div>
+                    <span>Multi-Language</span>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">✨</div>
+                    <span>Developer Quirks</span>
+                </div>
+            </div>
+
+            <div class="usage-counter">
+                <span>Uses today:</span>
+                <strong id="usageCount">0</strong>
+                <span>/</span>
+                <strong id="usageLimit">5</strong>
+                <span class="premium-badge" id="premiumBadge" style="display: none;">✨ PREMIUM</span>
+            </div>
+        </section>
+
+        <!-- Editor Section -->
+        <section class="editor-section">
+            <div class="editor-controls">
+                <select class="language-select" id="languageSelect">
+                    <option value="python">🐍 Python</option>
+                    <option value="javascript">🟨 JavaScript</option>
+                    <option value="typescript">🔷 TypeScript</option>
+                    <option value="java">☕ Java</option>
+                    <option value="cpp">🔵 C++</option>
+                    <option value="csharp">💜 C#</option>
+                    <option value="go">🐹 Go</option>
+                    <option value="rust">🦀 Rust</option>
+                    <option value="sql">🗄️ SQL</option>
+                </select>
+
+                <div class="control-group">
+                    <label>Intensity:</label>
+                    <input type="range" id="intensitySlider" min="1" max="3" value="2" title="Comment frequency">
+                    <span id="intensityLabel">Med</span>
+                </div>
+
+                <div class="control-group">
+                    <label>Style:</label>
+                    <select id="commentStyle">
+                        <option value="casual">😎 Casual</option>
+                        <option value="professional">👔 Professional</option>
+                        <option value="funny">🤣 Funny</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>Typos:</label>
+                    <input type="range" id="typoSlider" min="0" max="3" value="1" title="Typo frequency">
+                    <span id="typoLabel">Low</span>
+                </div>
+
+                <button class="humanize-btn" id="humanizeBtn" onclick="humanizeCode()">
+                    <span class="spinner"></span>
+                    <span>✨ Humanize</span>
+                </button>
+
+                <button class="action-btn" onclick="clearInput()" title="Clear">🗑️</button>
+                <button class="action-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
+            </div>
+
+            <div class="editors-container">
+                <div class="editor-panel input">
+                    <div class="panel-header">
+                        <span class="panel-title"><span class="dot"></span> Input Code</span>
+                        <div class="panel-actions">
+                            <span class="char-count" id="inputCharCount">0 chars</span>
+                            <button class="copy-btn" onclick="copyInput()">📋 Copy</button>
+                            <button class="clear-btn" onclick="clearInput()">🗑️ Clear</button>
+                        </div>
+                    </div>
+                    <div class="code-wrapper">
+                        <textarea class="code-input" id="codeInput" placeholder="Paste your AI-generated code here..."></textarea>
+                    </div>
+                </div>
+
+                <div class="editor-panel output">
+                    <div class="panel-header">
+                        <span class="panel-title"><span class="dot"></span> Humanized Code</span>
+                        <div class="panel-actions">
+                            <span class="char-count" id="outputCharCount">0 chars</span>
+                            <button class="copy-btn" id="copyOutputBtn" onclick="copyOutput()">📋 Copy</button>
+                            <button class="download-btn" onclick="downloadCode()">⬇️ Download</button>
+                            <button class="share-btn" onclick="shareToTwitter()">🐦 Share</button>
+                        </div>
+                    </div>
+                    <div class="code-wrapper">
+                        <div class="loading-message" id="loadingMessage">Making it human... ✨</div>
+                        <div class="code-output" id="codeOutput">
+                            <pre><code id="highlightedCode" class="hljs">// Your humanized code will appear here ✨</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-bar">
+                <div class="stat">
+                    <div class="stat-value" id="linesProcessed">0</div>
+                    <div class="stat-label">Lines Output</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="varsChanged">0</div>
+                    <div class="stat-label">Gaps Removed</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="commentsHumanized">0</div>
+                    <div class="stat-label">Comments Added</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing Section -->
+        <section class="pricing-section" id="pricing">
+            <h2>💎 Premium Plans</h2>
+            <p class="subtitle">Unlock unlimited humanizations and all premium features</p>
+
+            <div class="currency-toggle">
+                <button class="currency-btn active" onclick="setCurrency('inr')">🇮🇳 INR</button>
+                <button class="currency-btn" onclick="setCurrency('usd')">🇺🇸 USD</button>
+            </div>
+
+            <div class="pricing-cards">
+                <!-- Free Plan -->
+                <div class="pricing-card">
+                    <h3>🆓 Free</h3>
+                    <div class="price">₹0 <span>/ forever</span></div>
+                    <ul class="features-list">
+                        <li>5 humanizations per day</li>
+                        <li>Basic comment styles</li>
+                        <li>Standard processing</li>
+                        <li>Community support</li>
+                    </ul>
+                    <button class="buy-btn secondary">Current Plan</button>
+                </div>
+
+                <!-- Monthly Plan -->
+                <div class="pricing-card">
+                    <h3>📅 Monthly</h3>
+                    <div class="price" id="monthlyPrice">₹50 <span>/ month</span></div>
+                    <ul class="features-list">
+                        <li>Unlimited humanizations</li>
+                        <li>All comment styles</li>
+                        <li>Priority processing</li>
+                        <li>No ads</li>
+                        <li>Email support</li>
+                    </ul>
+                    <button class="buy-btn primary" onclick="openPaymentModal('monthly')">Get Monthly</button>
+                </div>
+
+                <!-- Yearly Plan -->
+                <div class="pricing-card popular">
+                    <div class="popular-badge">🔥 BEST VALUE</div>
+                    <h3>🎉 Yearly</h3>
+                    <div class="price" id="yearlyPrice">₹150 <span>/ year</span></div>
+                    <ul class="features-list">
+                        <li>Everything in Monthly</li>
+                        <li>Save 75%!</li>
+                        <li>Priority support</li>
+                        <li>Early access to features</li>
+                        <li>Custom comment styles</li>
+                    </ul>
+                    <button class="buy-btn primary" onclick="openPaymentModal('yearly')">Get Yearly</button>
+                </div>
+            </div>
+
+            <!-- Student Discount -->
+            <div class="student-discount">
+                <h3>🎓 Student Discount</h3>
+                <div class="discount-badge">50% OFF</div>
+                <p>Are you a student? Get 50% off on any premium plan!</p>
+                <a href="mailto:sai1327y@gmail.com?subject=Student%20Discount%20Request%20-%20Code%20Humanizer&body=Hi%2C%0A%0AI%20am%20a%20student%20and%20would%20like%20to%20request%20a%20student%20discount.%0A%0AMy%20Details%3A%0A-%20Name%3A%20%0A-%20College%20Name%3A%20%0A-%20College%20Email%3A%20%0A%0AI%20have%20attached%20my%20College%20ID%20Card.%0A%0AThank%20you!" class="student-btn">
+                    📧 Request Student Discount
+                </a>
+                <p class="student-requirements">
+                    📎 Required: College ID Card + College Email ID
+                </p>
+            </div>
+        </section>
+
+        <!-- Payment Modal -->
+        <div class="payment-modal" id="paymentModal">
+            <div class="payment-modal-content">
+                <button class="close-payment-modal" onclick="closePaymentModal()">&times;</button>
+                <h3>💳 Complete Payment</h3>
+                <p id="paymentPlanText">Monthly Plan - ₹50</p>
+                <div class="qr-placeholder" id="qrPlaceholder">
+                    📱 QR Code Coming Soon
+                </div>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 1rem;">
+                    Scan QR code to pay via UPI<br>
+                    After payment, send screenshot to:<br>
+                    <strong style="color: var(--secondary);">sai1327y@gmail.com</strong>
+                </p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <p>Built By <span style="color: var(--secondary); font-weight: 600;">Vatsal</span> & <span style="color: var(--accent); font-weight: 600;">Ravi</span> ✨</p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    
+    <script>
+        // ==================== FIREBASE CONFIG ====================
+        const firebaseConfig = {
+            apiKey: "AIzaSyDlUCOeCJI6LIQBfJHk54YdR8VYV_c_sDc",
+            authDomain: "humanizer-ra.firebaseapp.com",
+            projectId: "humanizer-ra",
+            storageBucket: "humanizer-ra.firebasestorage.app",
+            messagingSenderId: "187594966591",
+            appId: "1:187594966591:web:b15e1532570385b3331a8a",
+            measurementId: "G-0GY75C6FPZ"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        let currentUser = null;
+        let userPlan = 'free'; // free, monthly, yearly
+        let dailyLimit = 5; // Free: 5, Monthly: 50, Yearly: unlimited
+
+        // ==================== AUTH FUNCTIONS ====================
+        function openAuthModal() {
+            document.getElementById('authModal').classList.add('active');
+        }
+
+        function closeAuthModal() {
+            document.getElementById('authModal').classList.remove('active');
+        }
+
+        async function signInWithGoogle() {
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                const result = await auth.signInWithPopup(provider);
+                closeAuthModal();
+                console.log('Signed in:', result.user.displayName);
+            } catch (error) {
+                console.error('Sign in error:', error);
+                alert('Sign in failed: ' + error.message);
+            }
+        }
+
+        async function signInWithFacebook() {
+            try {
+                const provider = new firebase.auth.FacebookAuthProvider();
+                const result = await auth.signInWithPopup(provider);
+                closeAuthModal();
+                console.log('Signed in with Facebook:', result.user.displayName);
+            } catch (error) {
+                console.error('Facebook sign in error:', error);
+                alert('Sign in failed: ' + error.message);
+            }
+        }
+
+        async function signOutUser() {
+            try {
+                await auth.signOut();
+                console.log('Signed out');
+            } catch (error) {
+                console.error('Sign out error:', error);
+            }
+        }
+
+        // Owner emails - get unlimited access forever
+        const OWNER_EMAILS = ['sai1327y@gmail.com', 'vatsal1327@gmail.com'];
+
+        // Check user's premium status from Firestore
+        async function checkUserPremium(user) {
+            if (!user) {
+                userPlan = 'free';
+                dailyLimit = 5;
+                isPremium = false;
+                updateUsageDisplay();
+                return;
+            }
+
+            // Owner gets unlimited access
+            if (OWNER_EMAILS.includes(user.email.toLowerCase())) {
+                userPlan = 'owner';
+                dailyLimit = 999999;
+                isPremium = true;
+                usageLimit = dailyLimit;
+                updateUsageDisplay();
+                console.log('👑 Owner access granted!');
+                return;
+            }
+
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                
+                if (userDoc.exists) {
+                    const data = userDoc.data();
+                    const now = new Date();
+                    const expiryDate = data.premiumExpiry ? data.premiumExpiry.toDate() : null;
+                    
+                    if (expiryDate && expiryDate > now) {
+                        userPlan = data.plan || 'free';
+                        if (userPlan === 'monthly') {
+                            dailyLimit = 50;
+                            isPremium = true;
+                        } else if (userPlan === 'yearly') {
+                            dailyLimit = 9999; // Unlimited
+                            isPremium = true;
+                        }
+                    } else {
+                        userPlan = 'free';
+                        dailyLimit = 5;
+                        isPremium = false;
+                    }
+                } else {
+                    // Create new user document
+                    await db.collection('users').doc(user.uid).set({
+                        email: user.email,
+                        name: user.displayName,
+                        plan: 'free',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    userPlan = 'free';
+                    dailyLimit = 5;
+                    isPremium = false;
+                }
+                
+                usageLimit = dailyLimit;
+                updateUsageDisplay();
+            } catch (error) {
+                console.error('Error checking premium:', error);
+            }
+        }
+
+        function updateAuthUI(user) {
+            const loginBtn = document.getElementById('loginBtn');
+            const userProfile = document.getElementById('userProfile');
+            const userAvatar = document.getElementById('userAvatar');
+            const userName = document.getElementById('userName');
+
+            if (user) {
+                loginBtn.style.display = 'none';
+                userProfile.style.display = 'flex';
+                userAvatar.src = user.photoURL || 'https://via.placeholder.com/32';
+                userName.textContent = user.displayName || user.email;
+                
+                // Check premium status from database
+                checkUserPremium(user);
+            } else {
+                loginBtn.style.display = 'flex';
+                userProfile.style.display = 'none';
+                userPlan = 'free';
+                dailyLimit = 5;
+                isPremium = false;
+                usageLimit = 5;
+                updateUsageDisplay();
+            }
+        }
+
+        // Listen for auth state changes
+        auth.onAuthStateChanged((user) => {
+            currentUser = user;
+            updateAuthUI(user);
+        });
+
+        // ==================== CONFIGURATION ====================
+        let usageCount = parseInt(localStorage.getItem('usageCount') || '0');
+        let usageLimit = 5;
+        let isPremium = localStorage.getItem('isPremium') === 'true';
+        let currentTheme = localStorage.getItem('theme') || 'dark';
+
+        // Initialize theme
+        if (currentTheme === 'light') {
+            document.body.classList.add('light-theme');
+            document.querySelector('.theme-toggle').textContent = '☀️';
+        }
+
+        // Update usage display
+        function updateUsageDisplay() {
+            document.getElementById('usageCount').textContent = usageCount;
+            document.getElementById('usageLimit').textContent = isPremium ? '∞' : usageLimit;
+            document.getElementById('premiumBadge').style.display = isPremium ? 'inline' : 'none';
+        }
+        updateUsageDisplay();
+
+        // ==================== THEME TOGGLE ====================
+        function toggleTheme() {
+            document.body.classList.toggle('light-theme');
+            const isLight = document.body.classList.contains('light-theme');
+            document.querySelector('.theme-toggle').textContent = isLight ? '☀️' : '🌙';
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+        }
+
+        // ==================== FULLSCREEN ====================
+        function toggleFullscreen() {
+            document.body.classList.toggle('fullscreen');
+            const btn = document.getElementById('fullscreenBtn');
+            btn.classList.toggle('active');
+            btn.textContent = document.body.classList.contains('fullscreen') ? '✕' : '⛶';
+        }
+
+        // ==================== MODAL ====================
+        function showVerifyModal() {
+            document.getElementById('verifyModal').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('verifyModal').classList.remove('show');
+        }
+
+        // ==================== CONFETTI ====================
+        function createConfetti() {
+            const colors = ['#6366f1', '#22d3ee', '#f472b6', '#22c55e', '#f59e0b', '#ef4444'];
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + 'vw';
+                    confetti.style.top = '-10px';
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                    confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+                    document.body.appendChild(confetti);
+                    
+                    setTimeout(() => confetti.remove(), 3000);
+                }, i * 30);
+            }
+        }
+
+        // ==================== THREE.JS 3D BACKGROUND ====================
+        function init3DBackground() {
+            const container = document.getElementById('canvas-container');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            // Particles only (no wireframe shapes)
+            const particlesGeometry = new THREE.BufferGeometry();
+            const particleCount = 200;
+            const positions = new Float32Array(particleCount * 3);
+
+            for (let i = 0; i < particleCount * 3; i += 3) {
+                positions[i] = (Math.random() - 0.5) * 50;
+                positions[i + 1] = (Math.random() - 0.5) * 50;
+                positions[i + 2] = (Math.random() - 0.5) * 30 - 10;
+            }
+
+            particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const particlesMaterial = new THREE.PointsMaterial({
+                color: 0x6366f1,
+                size: 0.08,
+                transparent: true,
+                opacity: 0.6
+            });
+
+            const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+            scene.add(particles);
+
+            camera.position.z = 15;
+
+            let mouseX = 0, mouseY = 0;
+            document.addEventListener('mousemove', (e) => {
+                mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+                mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+            });
+
+            function animate() {
+                requestAnimationFrame(animate);
+
+                particles.rotation.y += 0.0002;
+                particles.rotation.x += 0.0001;
+
+                camera.position.x += (mouseX * 2 - camera.position.x) * 0.015;
+                camera.position.y += (-mouseY * 2 - camera.position.y) * 0.015;
+                camera.lookAt(scene.position);
+
+                renderer.render(scene, camera);
+            }
+
+            animate();
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        init3DBackground();
+
+        // ==================== CODE HUMANIZER ====================
+        class CodeHumanizer {
+            constructor() {
+                this.stats = { lines: 0, vars: 0, comments: 0 };
+                this.intensity = 2; // 1=Low, 2=Med, 3=High
+                this.typoLevel = 1; // 0=None, 1=Low, 2=Med, 3=High
+                this.commentStyle = 'casual'; // casual, professional, funny
+                
+                this.casualComments = [
+                    "this does the main thing", "prety straightforward here", "handles the logic",
+                    "not sure if this is optimal but it works", "TODO: maybe refactor later",
+                    "this part is importnat", "basic setup stuff", "the magic happnes here",
+                    "dont touch this it works", "figured this out after debugging",
+                    "borrowed this approch from stackoverflow", "quick fix for now",
+                    "should probaly add error handling", "works on my machine lol",
+                    "self explanatory", "standard boilerplate", "helper functon",
+                    "loop thru items", "check condiitons", "initalize variables",
+                    "edge case handling", "this is requred"
+                ];
+                
+                this.professionalComments = [
+                    "Initialize the primary handler", "Process incoming data",
+                    "Validate input parameters", "Execute core business logic",
+                    "Handle edge cases appropriately", "Return computed result",
+                    "Iterate through collection", "Apply transformation",
+                    "Check preconditions", "Perform cleanup operations",
+                    "Configure initial state", "Dispatch to handler",
+                    "Aggregate results", "Normalize input data"
+                ];
+                
+                this.funnyComments = [
+                    "here be dragons 🐉", "dont ask me how this works",
+                    "written at 3am, proceed with caution", "future me will hate this",
+                    "if this breaks, blame the intern", "magic happens here ✨",
+                    "TODO: buy coffee first", "works 60% of the time, every time",
+                    "copied from stackoverflow, no regrets", "trust me bro",
+                    "this is fine 🔥", "yolo", "ship it!", "good luck lol",
+                    "pray this never breaks", "¯\\_(ツ)_/¯"
+                ];
+                
+                this.patternComments = {
+                    'function': ["main function", "does the heavy lifting", "entry point"],
+                    'def ': ["defininig the function", "method starts here", "handles it"],
+                    'class': ["class definiton", "main class", "object blueprint"],
+                    'for': ["loop thru each", "iterate here", "procesing loop"],
+                    'while': ["keep going until done", "repeat until condition met"],
+                    'if': ["check this condition", "conditional check", "branching logic"],
+                    'else': ["otherwise do this", "fallback case", "alterantive path"],
+                    'return': ["send back the result", "output here", "final result"],
+                    'import': ["bring in dependancies", "requred modules"],
+                    'const': ["constant value", "wont change"],
+                    'let': ["variable declaraton", "mutable var"],
+                    'try': ["attempt this", "might fail"],
+                    'catch': ["handle errors here", "error handler"],
+                    'async': ["asyncronous operation", "non-blocking"],
+                    'await': ["wait for this", "pauses here"]
+                };
+            }
+
+            setIntensity(level) { this.intensity = level; }
+            setTypoLevel(level) { this.typoLevel = level; }
+            setCommentStyle(style) { this.commentStyle = style; }
+
+            getCommentPool() {
+                switch(this.commentStyle) {
+                    case 'professional': return this.professionalComments;
+                    case 'funny': return this.funnyComments;
+                    default: return this.casualComments;
+                }
+            }
+
+            transform(code, language) {
+                this.stats = { lines: 0, vars: 0, comments: 0 };
+                const originalLines = code.split('\n').length;
+                
+                let processed = this.removeCommentsAndGaps(code, language);
+                const afterCleanup = processed.split('\n').length;
+                this.stats.vars = originalLines - afterCleanup;
+                
+                processed = this.addHumanComments(processed, language);
+                this.stats.lines = processed.split('\n').length;
+                
+                return processed.trim();
+            }
+
+            removeCommentsAndGaps(code, language) {
+                const commentChar = ['python', 'bash', 'ruby'].includes(language) ? '#' : '//';
+                let lines = code.split('\n');
+                
+                lines = lines.map(line => {
+                    if (line.includes(commentChar)) {
+                        const parts = line.split(commentChar);
+                        return parts[0].trimEnd();
+                    }
+                    return line;
+                });
+                
+                lines = lines.filter(line => line.trim() !== '');
+                return lines.join('\n');
+            }
+
+            addHumanComments(code, language) {
+                const commentChar = ['python', 'bash', 'ruby'].includes(language) ? '#' : '//';
+                let lines = code.split('\n');
+                let result = [];
+                
+                const commentChance = [0.3, 0.5, 0.7][this.intensity - 1];
+                
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    const indent = line.match(/^(\s*)/)[1] || '';
+                    
+                    if (Math.random() < commentChance) {
+                        const comment = this.generateComment(line, language);
+                        const position = Math.random();
+                        
+                        if (position < 0.35) {
+                            result.push(`${indent}${commentChar} ${comment}`);
+                            result.push(line);
+                        } else if (position < 0.7) {
+                            result.push(line);
+                            result.push(`${indent}${commentChar} ${comment}`);
+                        } else {
+                            result.push(`${line}  ${commentChar} ${comment}`);
+                        }
+                        this.stats.comments++;
+                    } else {
+                        result.push(line);
+                    }
+                }
+                
+                return result.join('\n');
+            }
+
+            generateComment(line, language) {
+                const lineLower = line.toLowerCase();
+                const pool = this.getCommentPool();
+                
+                for (const [pattern, comments] of Object.entries(this.patternComments)) {
+                    if (lineLower.includes(pattern.toLowerCase())) {
+                        const comment = comments[Math.floor(Math.random() * comments.length)];
+                        return this.applyHumanStyle(comment);
+                    }
+                }
+                
+                const comment = pool[Math.floor(Math.random() * pool.length)];
+                return this.applyHumanStyle(comment);
+            }
+
+            applyHumanStyle(comment) {
+                const style = Math.random();
+                
+                if (style < 0.3) {
+                    comment = comment.toLowerCase();
+                } else if (style < 0.5) {
+                    comment = comment.charAt(0).toUpperCase() + comment.slice(1).toLowerCase();
+                } else if (style < 0.7) {
+                    if (Math.random() < 0.1) comment = comment.toUpperCase();
+                    else comment = comment.toLowerCase();
+                } else {
+                    if (Math.random() < 0.15) {
+                        comment = comment.split('').map(c => 
+                            Math.random() < 0.25 ? c.toUpperCase() : c.toLowerCase()
+                        ).join('');
+                    } else {
+                        const words = comment.split(' ');
+                        if (words.length > 1) {
+                            const idx = Math.floor(Math.random() * words.length);
+                            words[idx] = words[idx].toUpperCase();
+                            comment = words.join(' ');
+                        }
+                    }
+                }
+                
+                // Add typos based on typo level
+                if (this.typoLevel > 0 && Math.random() < this.typoLevel * 0.15) {
+                    comment = this.addTypo(comment);
+                }
+                
+                if (Math.random() < 0.08) comment += '...';
+                if (Math.random() < 0.05) comment += ' lol';
+                
+                return comment;
+            }
+            
+            addTypo(text) {
+                const typos = [
+                    [/the /g, 'teh '], [/and /g, 'adn '], [/for /g, 'fro '],
+                    [/ing /g, 'nig '], [/ion/g, 'oin'], [/tion/g, 'toin'],
+                    [/with/g, 'wtih'], [/from/g, 'form'], [/this/g, 'tihs']
+                ];
+                const typo = typos[Math.floor(Math.random() * typos.length)];
+                return text.replace(typo[0], typo[1]);
+            }
+
+            getStats() { return this.stats; }
+        }
+
+        const humanizer = new CodeHumanizer();
+        let outputCode = '';
+
+        // ==================== LOADING MESSAGES ====================
+        const loadingMessages = [
+            "Making it human... ✨",
+            "Adding personality... 🎭",
+            "Inserting typos... ⌨️",
+            "Removing robot vibes... 🤖",
+            "Channeling developer energy... ☕",
+            "Sprinkling some chaos... 🎲",
+            "Humanizing in progress... 🧠",
+            "Adding that personal touch... 👆"
+        ];
+
+        // ==================== HUMANIZE FUNCTION ====================
+        async function humanizeCode() {
+            const input = document.getElementById('codeInput').value.trim();
+            const language = document.getElementById('languageSelect').value;
+            const btn = document.getElementById('humanizeBtn');
+            const loadingEl = document.getElementById('loadingMessage');
+            
+            if (!input) {
+                alert('Please enter some code to humanize!');
+                return;
+            }
+
+            // Check usage limit
+            if (!isPremium && usageCount >= usageLimit) {
+                showVerifyModal();
+                return;
+            }
+
+            btn.classList.add('loading');
+            btn.disabled = true;
+            
+            // Show loading message
+            loadingEl.textContent = loadingMessages[Math.floor(Math.random() * loadingMessages.length)];
+            loadingEl.classList.add('show');
+            document.getElementById('codeOutput').style.opacity = '0.3';
+
+            // Get settings
+            humanizer.setIntensity(parseInt(document.getElementById('intensitySlider').value));
+            humanizer.setTypoLevel(parseInt(document.getElementById('typoSlider').value));
+            humanizer.setCommentStyle(document.getElementById('commentStyle').value);
+
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 500));
+
+            try {
+                outputCode = humanizer.transform(input, language);
+                const stats = humanizer.getStats();
+                
+                document.getElementById('linesProcessed').textContent = stats.lines;
+                document.getElementById('varsChanged').textContent = stats.vars;
+                document.getElementById('commentsHumanized').textContent = stats.comments;
+                document.getElementById('outputCharCount').textContent = outputCode.length + ' chars';
+                
+                const codeElement = document.getElementById('highlightedCode');
+                codeElement.textContent = outputCode;
+                codeElement.className = `hljs language-${language}`;
+                hljs.highlightElement(codeElement);
+                
+                // Update usage
+                usageCount++;
+                localStorage.setItem('usageCount', usageCount);
+                updateUsageDisplay();
+                
+                // Confetti celebration!
+                createConfetti();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('highlightedCode').textContent = 'Error processing code. Please try again.';
+            }
+
+            loadingEl.classList.remove('show');
+            document.getElementById('codeOutput').style.opacity = '1';
+            btn.classList.remove('loading');
+            btn.disabled = false;
+        }
+
+        // ==================== UTILITY FUNCTIONS ====================
+        function clearInput() {
+            document.getElementById('codeInput').value = '';
+            updateInputCharCount();
+        }
+
+        function copyInput() {
+            const input = document.getElementById('codeInput');
+            navigator.clipboard.writeText(input.value);
+            showCopied(event.target);
+        }
+
+        function copyOutput() {
+            if (outputCode) {
+                navigator.clipboard.writeText(outputCode);
+                showCopied(document.getElementById('copyOutputBtn'));
+            }
+        }
+
+        function showCopied(btn) {
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '✓ Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.classList.remove('copied');
+            }, 2000);
+        }
+
+        function downloadCode() {
+            if (!outputCode) return;
+            const language = document.getElementById('languageSelect').value;
+            const extensions = {
+                python: 'py', javascript: 'js', typescript: 'ts', java: 'java',
+                cpp: 'cpp', csharp: 'cs', go: 'go', rust: 'rs', sql: 'sql'
+            };
+            const blob = new Blob([outputCode], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `humanized_code.${extensions[language] || 'txt'}`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function shareToTwitter() {
+            if (!outputCode) return;
+            const text = encodeURIComponent('Just humanized my AI code with Code Humanizer! 🚀✨ Check it out: ');
+            const url = encodeURIComponent(window.location.href);
+            window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
+        }
+
+        function updateInputCharCount() {
+            const count = document.getElementById('codeInput').value.length;
+            document.getElementById('inputCharCount').textContent = count + ' chars';
+        }
+
+        // ==================== SLIDER LABELS ====================
+        document.getElementById('intensitySlider').addEventListener('input', function() {
+            const labels = ['Low', 'Med', 'High'];
+            document.getElementById('intensityLabel').textContent = labels[this.value - 1];
+        });
+
+        document.getElementById('typoSlider').addEventListener('input', function() {
+            const labels = ['None', 'Low', 'Med', 'High'];
+            document.getElementById('typoLabel').textContent = labels[this.value];
+        });
+
+        // ==================== CHARACTER COUNT ====================
+        document.getElementById('codeInput').addEventListener('input', updateInputCharCount);
+
+        // ==================== KEYBOARD SHORTCUTS ====================
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                humanizeCode();
+            }
+            if (e.key === 'Escape' && document.body.classList.contains('fullscreen')) {
+                toggleFullscreen();
+            }
+        });
+
+        // ==================== DEFAULT CODE ====================
+        const defaultCode = {
+            python: `print("If you follow me on GitHub and Instagram, we will provide you lifetime free access to all premium features!")
+print("If you unfollow me, our AI will detect it and remove all premium features!")`,
+            javascript: `console.log("If you follow me on GitHub and Instagram, we will provide you lifetime free access to all premium features!");
+console.log("If you unfollow me, our AI will detect it and remove all premium features!");`,
+            typescript: `console.log("If you follow me on GitHub and Instagram, we will provide you lifetime free access to all premium features!");
+console.log("If you unfollow me, our AI will detect it and remove all premium features!");`,
+            java: `System.out.println("If you follow me on GitHub and Instagram, we will provide you lifetime free access to all premium features!");
+System.out.println("If you unfollow me, our AI will detect it and remove all premium features!");`,
+            cpp: `#include <iostream>
+using namespace std;
+int main() {
+    cout << "If you follow me on GitHub and Instagram, we will provide you lifetime free access to all premium features!" << endl;
+    cout << "If you unfollow me, our AI will detect it and remove all premium features!" << endl;
+    return 0;
+}`,
+            csharp: `Console.WriteLine("If you follow me on GitHub and Instagram, we will provide you lifetime free access to all premium features!");
+Console.WriteLine("If you unfollow me, our AI will detect it and remove all premium features!");`,
+            go: `package main
+import "fmt"
+func main() {
+    fmt.Println("If you follow me on GitHub and Instagram, we will provide you lifetime free access to all premium features!")
+    fmt.Println("If you unfollow me, our AI will detect it and remove all premium features!")
+}`,
+            rust: `fn main() {
+    println!("If you follow me on GitHub and Instagram, we will provide you lifetime free access to all premium features!");
+    println!("If you unfollow me, our AI will detect it and remove all premium features!");
+}`,
+            sql: `SELECT 'If you follow me on GitHub and Instagram, we will provide you lifetime free access to all premium features!';
+SELECT 'If you unfollow me, our AI will detect it and remove all premium features!';`
+        };
+
+        // ==================== LOCALSTORAGE ====================
+        // Load saved code if exists
+        const savedCode = localStorage.getItem('lastCode');
+        const savedLanguage = localStorage.getItem('lastLanguage');
+
+        if (savedCode) {
+            document.getElementById('codeInput').value = savedCode;
+        } else {
+            document.getElementById('codeInput').value = defaultCode.python;
+        }
+
+        if (savedLanguage) {
+            document.getElementById('languageSelect').value = savedLanguage;
+        }
+
+        updateInputCharCount();
+
+        // Save code on change
+        document.getElementById('codeInput').addEventListener('input', function() {
+            localStorage.setItem('lastCode', this.value);
+        });
+
+        document.getElementById('languageSelect').addEventListener('change', function() {
+            localStorage.setItem('lastLanguage', this.value);
+            if (!localStorage.getItem('lastCode')) {
+                document.getElementById('codeInput').value = defaultCode[this.value] || defaultCode.python;
+                updateInputCharCount();
+            }
+        });
+
+        // Reset daily usage at midnight
+        const today = new Date().toDateString();
+        const lastUsageDate = localStorage.getItem('lastUsageDate');
+        if (lastUsageDate !== today) {
+            localStorage.setItem('lastUsageDate', today);
+            localStorage.setItem('usageCount', '0');
+            usageCount = 0;
+            updateUsageDisplay();
+        }
+
+        // ==================== CURSOR CODE TRAIL ====================
+        const codeSnippets = [
+            'if()', 'for()', '=>', '{}', '[]', '();', '++', '--',
+            'let', 'var', 'const', 'func', 'def', 'class', 'return',
+            '===', '!==', '&&', '||', '?:', '+=', '-=', '*=',
+            '<>', '/>', '</>', '...', '::',  '#', '//', '/*',
+            'int', 'str', 'bool', 'null', 'true', 'false',
+            '(x)', '[i]', '.map', '.get', '.set', 'async', 'await',
+            '0x', '01', '42', '{ }', '( )', '< >'
+        ];
+        
+        const codeColors = ['#22d3ee', '#6366f1', '#f472b6', '#a855f7', '#34d399', '#fbbf24'];
+        let lastParticleTime = 0;
+        const particleDelay = 50; // Minimum ms between particles
+        let activeParticles = 0;
+        const maxParticles = 30;
+
+        function createCodeParticle(x, y) {
+            if (activeParticles >= maxParticles) return;
+            
+            const particle = document.createElement('span');
+            particle.className = 'code-particle';
+            particle.textContent = codeSnippets[Math.floor(Math.random() * codeSnippets.length)];
+            particle.style.left = (x + (Math.random() - 0.5) * 20) + 'px';
+            particle.style.top = y + 'px';
+            particle.style.color = codeColors[Math.floor(Math.random() * codeColors.length)];
+            particle.style.animationDuration = (1.5 + Math.random()) + 's';
+            
+            document.body.appendChild(particle);
+            activeParticles++;
+            
+            particle.addEventListener('animationend', () => {
+                particle.remove();
+                activeParticles--;
+            });
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            const now = Date.now();
+            if (now - lastParticleTime < particleDelay) return;
+            
+            // Only create particles sometimes (30% chance)
+            if (Math.random() > 0.3) return;
+            
+            lastParticleTime = now;
+            createCodeParticle(e.clientX, e.clientY);
+        });
+
+        // ==================== PRICING ====================
+        let currentCurrency = 'inr';
+        const prices = {
+            inr: { monthly: '₹50', yearly: '₹150', monthlyLabel: '/ month', yearlyLabel: '/ year' },
+            usd: { monthly: '$0.60', yearly: '$1.80', monthlyLabel: '/ month', yearlyLabel: '/ year' }
+        };
+
+        function setCurrency(currency) {
+            currentCurrency = currency;
+            document.querySelectorAll('.currency-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.getElementById('monthlyPrice').innerHTML = `${prices[currency].monthly} <span>${prices[currency].monthlyLabel}</span>`;
+            document.getElementById('yearlyPrice').innerHTML = `${prices[currency].yearly} <span>${prices[currency].yearlyLabel}</span>`;
+        }
+
+        function openPaymentModal(plan) {
+            const modal = document.getElementById('paymentModal');
+            const planText = document.getElementById('paymentPlanText');
+            
+            if (plan === 'monthly') {
+                planText.textContent = `Monthly Plan - ${prices[currentCurrency].monthly}`;
+            } else {
+                planText.textContent = `Yearly Plan - ${prices[currentCurrency].yearly}`;
+            }
+            
+            modal.classList.add('active');
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentModal').classList.remove('active');
+        }
+
+        // Close modal on outside click
+        document.getElementById('paymentModal').addEventListener('click', function(e) {
+            if (e.target === this) closePaymentModal();
+        });
+
+        // ==================== ADMIN FUNCTIONS (Use in Console) ====================
+        // To activate premium for a user, open browser console and run:
+        // activatePremium('user@email.com', 'monthly') or activatePremium('user@email.com', 'yearly')
+        
+        window.activatePremium = async function(email, plan) {
+            try {
+                const usersRef = db.collection('users');
+                const snapshot = await usersRef.where('email', '==', email).get();
+                
+                if (snapshot.empty) {
+                    console.log('❌ User not found:', email);
+                    return;
+                }
+                
+                const userDoc = snapshot.docs[0];
+                const now = new Date();
+                let expiryDate;
+                
+                if (plan === 'monthly') {
+                    expiryDate = new Date(now.setMonth(now.getMonth() + 1));
+                } else if (plan === 'yearly') {
+                    expiryDate = new Date(now.setFullYear(now.getFullYear() + 1));
+                }
+                
+                await userDoc.ref.update({
+                    plan: plan,
+                    premiumExpiry: expiryDate,
+                    activatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                console.log(`✅ Premium activated for ${email}`);
+                console.log(`   Plan: ${plan}`);
+                console.log(`   Expires: ${expiryDate.toDateString()}`);
+            } catch (error) {
+                console.error('❌ Error:', error);
+            }
+        };
+
+        // Check user status
+        window.checkUser = async function(email) {
+            try {
+                const snapshot = await db.collection('users').where('email', '==', email).get();
+                if (snapshot.empty) {
+                    console.log('❌ User not found');
+                    return;
+                }
+                const data = snapshot.docs[0].data();
+                console.log('📧 Email:', data.email);
+                console.log('📋 Plan:', data.plan || 'free');
+                console.log('📅 Expires:', data.premiumExpiry ? data.premiumExpiry.toDate().toDateString() : 'N/A');
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        };
+    </script>
+</body>
+</html>
