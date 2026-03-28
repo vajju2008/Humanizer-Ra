@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Code Humanizer | Transform AI Code to Human Style</title>
+    <link rel="icon" type="image/jpeg" href="assets/favicon.jpeg">
+    <link rel="apple-touch-icon" href="assets/favicon.jpeg">
     <link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;Code Humanizer&quot;,&quot;short_name&quot;:&quot;Humanizer&quot;,&quot;start_url&quot;:&quot;.&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;theme_color&quot;:&quot;%236366f1&quot;,&quot;background_color&quot;:&quot;%230a0a1a&quot;}">
     <meta name="theme-color" content="#6366f1">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -315,6 +317,16 @@
             padding: 0.25rem;
         }
 
+        .control-group select option {
+            background: #1a1a2e;
+            color: var(--text);
+        }
+
+        body.light-theme .control-group select option {
+            background: #ffffff;
+            color: #1e293b;
+        }
+
         .control-group input[type="range"] {
             width: 80px;
             accent-color: var(--primary);
@@ -383,6 +395,23 @@
             display: block;
         }
 
+        .humanize-again-btn {
+            background: linear-gradient(135deg, #22d3ee, #06b6d4);
+            border: none;
+            color: white;
+            padding: 0.75rem 1.25rem;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+
+        .humanize-again-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(34, 211, 238, 0.4);
+        }
+
         .action-btn {
             background: var(--bg-card);
             border: 1px solid var(--border);
@@ -404,6 +433,43 @@
             color: white;
             border-color: var(--primary);
         }
+
+        /* Diff View Styles */
+        .diff-container {
+            display: none;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .diff-container.show {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .diff-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            overflow: auto;
+            max-height: 400px;
+        }
+
+        .diff-panel h4 {
+            margin-bottom: 0.75rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .diff-panel pre {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .diff-panel.original h4 { color: #f87171; }
+        .diff-panel.humanized h4 { color: #4ade80; }
 
         @keyframes spin {
             to { transform: rotate(360deg); }
@@ -622,6 +688,52 @@
         footer a {
             color: var(--secondary);
             text-decoration: none;
+        }
+
+        /* Learning Section */
+        .learning-section {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            text-align: left;
+        }
+
+        .learning-section h3 {
+            margin-bottom: 0.75rem;
+            color: var(--secondary);
+            font-size: 1rem;
+        }
+
+        .transformations-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .transformation-item {
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            border-left: 3px solid var(--primary);
+        }
+
+        body.light-theme .transformation-item {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .transformation-type {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .transformation-desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.4;
         }
 
         /* Confetti */
@@ -1316,16 +1428,28 @@
         </div>
     </div>
 
-    <!-- Verification Modal -->
+    <!-- Verification Modal (for non-logged-in users after 3 uses) -->
     <div class="modal-overlay" id="verifyModal">
         <div class="modal">
-            <h3>🔓 Unlock Premium Features!</h3>
-            <p>Follow us on GitHub and Instagram to get lifetime FREE access to all premium features including unlimited uses, all comment styles, and priority processing!</p>
+            <h3>🔐 Sign Up for More Uses!</h3>
+            <p>You've used your 3 free tries! Sign up now to get <strong>7 uses for the next 24 hours</strong>!</p>
+            <div class="modal-buttons">
+                <button class="modal-btn primary" onclick="closeModal(); openAuthModal();">✨ Sign Up Now</button>
+            </div>
+            <button class="modal-btn secondary" onclick="closeModal()" style="margin-top: 1rem;">Maybe Later</button>
+        </div>
+    </div>
+
+    <!-- Welcome Modal (shown after sign up - suggest following socials) -->
+    <div class="modal-overlay" id="welcomeModal">
+        <div class="modal">
+            <h3>🎉 Welcome to Code Humanizer!</h3>
+            <p>Thanks for signing up! You now have <strong>7 daily uses</strong>. Follow us on GitHub and Instagram to stay updated with new features!</p>
             <div class="modal-buttons">
                 <a href="https://github.com/vajju2008" target="_blank" class="modal-btn primary">🐙 Follow on GitHub</a>
                 <a href="https://instagram.com/saivatsall" target="_blank" class="modal-btn primary">📸 Follow on Instagram</a>
             </div>
-            <button class="modal-btn secondary" onclick="closeModal()" style="margin-top: 1rem;">Maybe Later (5 free uses left)</button>
+            <button class="modal-btn secondary" onclick="closeWelcomeModal()" style="margin-top: 1rem;">Start Humanizing! 🚀</button>
         </div>
     </div>
 
@@ -1386,7 +1510,7 @@
                 <span>Uses today:</span>
                 <strong id="usageCount">0</strong>
                 <span>/</span>
-                <strong id="usageLimit">14</strong>
+                <strong id="usageLimit">3</strong>
                 <span class="premium-badge" id="premiumBadge" style="display: none;">✨ PREMIUM</span>
             </div>
         </section>
@@ -1428,10 +1552,25 @@
                     <span id="typoLabel">Low</span>
                 </div>
 
+                <div class="control-group">
+                    <label>Logic:</label>
+                    <select id="logicChange" title="Change algorithmic approach">
+                        <option value="none">🔄 None</option>
+                        <option value="mild">🔀 Mild</option>
+                        <option value="aggressive">⚡ Aggressive</option>
+                    </select>
+                </div>
+
                 <button class="humanize-btn" id="humanizeBtn" onclick="humanizeCode()">
                     <span class="spinner"></span>
                     <span>✨ Humanize</span>
                 </button>
+
+                <button class="humanize-again-btn" id="humanizeAgainBtn" onclick="humanizeCode()" title="Get a different variation" style="display: none;">
+                    🔄 Again
+                </button>
+
+                <button class="action-btn" id="diffToggleBtn" onclick="toggleDiffView()" title="Toggle Diff View" style="display: none;">📊</button>
 
                 <button class="action-btn" onclick="clearInput()" title="Clear">🗑️</button>
                 <button class="action-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
@@ -1489,6 +1628,24 @@
                     <div class="stat-label">Comments Added</div>
                 </div>
             </div>
+            
+            <!-- Learning Section - What Changed -->
+            <div class="learning-section" id="learningSection" style="display: none;">
+                <h3>📚 What You Can Learn</h3>
+                <div class="transformations-list" id="transformationsList"></div>
+            </div>
+            
+            <!-- Diff View Section -->
+            <div class="diff-container" id="diffContainer">
+                <div class="diff-panel original">
+                    <h4>📝 Original Code</h4>
+                    <pre id="diffOriginal"></pre>
+                </div>
+                <div class="diff-panel humanized">
+                    <h4>✨ Humanized Code</h4>
+                    <pre id="diffHumanized"></pre>
+                </div>
+            </div>
         </section>
 
         <!-- Pricing Section -->
@@ -1518,7 +1675,7 @@
                 <!-- Monthly Plan -->
                 <div class="pricing-card">
                     <h3>📅 Monthly</h3>
-                    <div class="price" id="monthlyPrice">₹50 <span>/ month</span></div>
+                    <div class="price" id="monthlyPrice">₹30 <span>/ month</span></div>
                     <ul class="features-list">
                         <li>Unlimited humanizations</li>
                         <li>All comment styles</li>
@@ -1533,7 +1690,7 @@
                 <div class="pricing-card popular">
                     <div class="popular-badge">🔥 BEST VALUE</div>
                     <h3>🎉 Yearly</h3>
-                    <div class="price" id="yearlyPrice">₹150 <span>/ year</span></div>
+                    <div class="price" id="yearlyPrice">₹60 <span>/ year</span></div>
                     <ul class="features-list">
                         <li>Everything in Monthly</li>
                         <li>Save 75%!</li>
@@ -1564,7 +1721,7 @@
             <div class="payment-modal-content">
                 <button class="close-payment-modal" onclick="closePaymentModal()">&times;</button>
                 <h3>💳 Complete Payment</h3>
-                <p id="paymentPlanText">Monthly Plan - ₹50</p>
+                <p id="paymentPlanText">Monthly Plan - ₹30</p>
                 <div class="qr-placeholder" id="qrPlaceholder">
                     <img src="assets/payment-qr.jpeg" alt="Payment QR Code" />
                 </div>
@@ -1581,7 +1738,7 @@
 
         <!-- Footer -->
         <footer>
-            <p>Built By <span style="color: var(--secondary); font-weight: 600;">Vatsal</span> ✨</p>
+            <p>Built By <span style="color: var(--secondary); font-weight: 600;">Vatsal</span> & <span style="color: var(--secondary); font-weight: 600;">Prabhas</span> ✨</p>
         </footer>
     </div>
 
@@ -1612,7 +1769,9 @@
         const db = firebase.firestore();
         let currentUser = null;
         let userPlan = 'free'; // free, monthly, yearly
-        let dailyLimit = 14; // Free: 14, Monthly: 50, Yearly: unlimited
+        let dailyLimit = 7; // Logged in: 7, Guest: 3, Monthly: 50, Yearly: unlimited
+        const GUEST_LIMIT = 3;
+        const LOGGED_IN_LIMIT = 7;
 
         // ==================== AUTH FUNCTIONS ====================
         function openAuthModal() {
@@ -1715,8 +1874,9 @@
         async function checkUserPremium(user) {
             if (!user) {
                 userPlan = 'free';
-                dailyLimit = 14;
+                dailyLimit = GUEST_LIMIT;
                 isPremium = false;
+                usageLimit = GUEST_LIMIT;
                 updateUsageDisplay();
                 return;
             }
@@ -1750,12 +1910,13 @@
                             isPremium = true;
                         }
                     } else {
+                        // Logged in free user gets 7 uses
                         userPlan = 'free';
-                        dailyLimit = 14;
+                        dailyLimit = LOGGED_IN_LIMIT;
                         isPremium = false;
                     }
                 } else {
-                    // Create new user document
+                    // Create new user document - this is a new signup!
                     await db.collection('users').doc(user.uid).set({
                         email: user.email,
                         name: user.displayName,
@@ -1763,14 +1924,24 @@
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                     userPlan = 'free';
-                    dailyLimit = 14;
+                    dailyLimit = LOGGED_IN_LIMIT;
                     isPremium = false;
+                    
+                    // Show welcome modal for new signups
+                    showWelcomeModal();
                 }
                 
                 usageLimit = dailyLimit;
                 updateUsageDisplay();
+                console.log('✅ Usage limit updated to:', usageLimit, 'for logged-in user');
             } catch (error) {
                 console.error('Error checking premium:', error);
+                // Fallback: still give logged-in user their limit
+                userPlan = 'free';
+                dailyLimit = LOGGED_IN_LIMIT;
+                isPremium = false;
+                usageLimit = dailyLimit;
+                updateUsageDisplay();
             }
         }
 
@@ -1792,9 +1963,9 @@
                 loginBtn.style.display = 'flex';
                 userProfile.style.display = 'none';
                 userPlan = 'free';
-                dailyLimit = 14;
+                dailyLimit = GUEST_LIMIT;
                 isPremium = false;
-                usageLimit = 14;
+                usageLimit = GUEST_LIMIT;
                 updateUsageDisplay();
             }
         }
@@ -1807,7 +1978,7 @@
 
         // ==================== CONFIGURATION ====================
         let usageCount = parseInt(localStorage.getItem('usageCount') || '0');
-        let usageLimit = 14;
+        let usageLimit = GUEST_LIMIT; // Default to guest limit, will update if logged in
         let isPremium = localStorage.getItem('isPremium') === 'true';
         let currentTheme = localStorage.getItem('theme') || 'dark';
 
@@ -1848,6 +2019,14 @@
 
         function closeModal() {
             document.getElementById('verifyModal').classList.remove('show');
+        }
+
+        function showWelcomeModal() {
+            document.getElementById('welcomeModal').classList.add('show');
+        }
+
+        function closeWelcomeModal() {
+            document.getElementById('welcomeModal').classList.remove('show');
         }
 
         // ==================== CONFETTI ====================
@@ -1941,6 +2120,7 @@
                 this.intensity = 2; // 1=Low, 2=Med, 3=High
                 this.typoLevel = 1; // 0=None, 1=Low, 2=Med, 3=High
                 this.commentStyle = 'casual'; // casual, professional, funny
+                this.logicChangeLevel = 'none'; // none, mild, aggressive
                 
                 this.casualComments = [
                     "this does the main thing", "prety straightforward here", "handles the logic",
@@ -1996,6 +2176,7 @@
             setIntensity(level) { this.intensity = level; }
             setTypoLevel(level) { this.typoLevel = level; }
             setCommentStyle(style) { this.commentStyle = style; }
+            setLogicChange(level) { this.logicChangeLevel = level; }
 
             getCommentPool() {
                 switch(this.commentStyle) {
@@ -2007,13 +2188,19 @@
 
             transform(code, language) {
                 this.stats = { lines: 0, vars: 0, comments: 0, varsRenamed: 0, logicChanges: 0 };
+                this.transformations = []; // Track what changes were made for learning
                 const originalLines = code.split('\n').length;
                 
                 let processed = this.removeCommentsAndGaps(code, language);
                 const afterCleanup = processed.split('\n').length;
                 this.stats.vars = originalLines - afterCleanup;
                 
-                // NEW: Apply anti-plagiarism transformations
+                // Apply algorithmic diversity transformations (Logic Change)
+                if (this.logicChangeLevel !== 'none') {
+                    processed = this.applyAlgorithmicDiversity(processed, language);
+                }
+                
+                // Apply anti-plagiarism transformations
                 processed = this.renameVariables(processed, language);
                 processed = this.restructureLogic(processed, language);
                 
@@ -2022,10 +2209,728 @@
                 
                 return processed.trim();
             }
+            
+            getTransformations() {
+                return this.transformations || [];
+            }
+            
+            addTransformation(type, description) {
+                if (!this.transformations) this.transformations = [];
+                this.transformations.push({ type, description });
+            }
+
+            // ========== ALGORITHMIC DIVERSITY TRANSFORMATIONS ==========
+            applyAlgorithmicDiversity(code, language) {
+                let result = code;
+                const aggressive = this.logicChangeLevel === 'aggressive';
+                
+                // Detect and transform common patterns
+                result = this.transformRecursionToIteration(result, language, aggressive);
+                result = this.transformLoopPatterns(result, language, aggressive);
+                result = this.transformConditionalPatterns(result, language, aggressive);
+                result = this.transformMathPatterns(result, language, aggressive);
+                result = this.transformArrayPatterns(result, language, aggressive);
+                
+                // Safe transformations (always applied)
+                result = this.swapCommutativeOperations(result, language);
+                result = this.varyWhitespace(result, language);
+                result = this.varyBracketStyle(result, language);
+                
+                return result;
+            }
+
+            // ========== SAFE TRANSFORMATIONS ==========
+            
+            // Helper: Protect strings and apply transformation
+            protectStringsAndTransform(line, transformFn) {
+                const stringPlaceholders = [];
+                let protectedLine = line.replace(/(["'`])(?:(?!\1|\\).|\\.)*\1/g, (match) => {
+                    stringPlaceholders.push(match);
+                    return `__STR_${stringPlaceholders.length - 1}__`;
+                });
+                
+                protectedLine = transformFn(protectedLine);
+                
+                protectedLine = protectedLine.replace(/__STR_(\d+)__/g, (match, idx) => {
+                    return stringPlaceholders[parseInt(idx)];
+                });
+                
+                return protectedLine;
+            }
+            
+            // Swap commutative operations: a + b -> b + a, a * b -> b * a
+            swapCommutativeOperations(code, language) {
+                let lines = code.split('\n');
+                let result = [];
+                
+                for (let line of lines) {
+                    // Skip strings and comments
+                    if (this.isCommentOrString(line, language)) {
+                        result.push(line);
+                        continue;
+                    }
+                    
+                    // Protect strings before transforming
+                    line = this.protectStringsAndTransform(line, (protectedLine) => {
+                        // Swap addition: a + b -> b + a (50% chance)
+                        if (/\w+\s*\+\s*\w+/.test(protectedLine) && !/\+\+|^\s*#|^\s*\/\//.test(protectedLine) && Math.random() < 0.5) {
+                            protectedLine = protectedLine.replace(/(\b\w+)\s*\+\s*(\b\w+)/g, (match, a, b) => {
+                                if (a === b) return match;
+                                return `${b} + ${a}`;
+                            });
+                            this.stats.logicChanges++;
+                        }
+                        
+                        // Swap multiplication: a * b -> b * a (50% chance)
+                        if (/\w+\s*\*\s*\w+/.test(protectedLine) && !/\*\*/.test(protectedLine) && Math.random() < 0.5) {
+                            protectedLine = protectedLine.replace(/(\b\w+)\s*\*\s*(\b\w+)/g, (match, a, b) => {
+                                if (a === b) return match;
+                                return `${b} * ${a}`;
+                            });
+                            this.stats.logicChanges++;
+                        }
+                        
+                        // Swap equality: a == b -> b == a (40% chance)
+                        if (/\w+\s*==\s*\w+/.test(protectedLine) && Math.random() < 0.4) {
+                            protectedLine = protectedLine.replace(/(\b\w+)\s*==\s*(\b\w+)/g, (match, a, b) => {
+                                if (a === b) return match;
+                                return `${b} == ${a}`;
+                            });
+                            this.stats.logicChanges++;
+                        }
+                        
+                        return protectedLine;
+                    });
+                    
+                    // NOTE: We do NOT swap && / || / and / or because of short-circuit evaluation
+                    // Example: if (ptr != null && ptr.value > 0) - swapping would cause null pointer error
+                    
+                    result.push(line);
+                }
+                
+                return result.join('\n');
+            }
+            
+            // Vary whitespace around operators
+            varyWhitespace(code, language) {
+                let lines = code.split('\n');
+                let result = [];
+                
+                for (let line of lines) {
+                    // Skip comments
+                    if (this.isCommentOrString(line, language)) {
+                        result.push(line);
+                        continue;
+                    }
+                    
+                    // Randomly adjust spacing around = (30% chance)
+                    if (/\w\s*=\s*\w/.test(line) && !/[=!<>]=/.test(line) && Math.random() < 0.3) {
+                        const styles = [' = ', '  =  ', ' =  ', '  = '];
+                        const style = styles[Math.floor(Math.random() * styles.length)];
+                        line = line.replace(/(\w)\s*=\s*(\w)/g, `$1${style}$2`);
+                    }
+                    
+                    // Vary spacing in comparisons (20% chance)
+                    if (/[<>]=?/.test(line) && Math.random() < 0.2) {
+                        if (Math.random() < 0.5) {
+                            line = line.replace(/(\w)\s*(<|>|<=|>=)\s*(\w)/g, '$1 $2 $3');
+                        }
+                    }
+                    
+                    result.push(line);
+                }
+                
+                return result.join('\n');
+            }
+            
+            // Vary bracket/parenthesis style
+            varyBracketStyle(code, language) {
+                let lines = code.split('\n');
+                let result = [];
+                
+                for (let line of lines) {
+                    // Skip comments and strings
+                    if (this.isCommentOrString(line, language)) {
+                        result.push(line);
+                        continue;
+                    }
+                    
+                    // Function call spacing: func(x) -> func (x) or vice versa (25% chance)
+                    if (/\w+\s*\(/.test(line) && Math.random() < 0.25) {
+                        if (/\w\(/.test(line)) {
+                            // Add space: func(x) -> func (x)
+                            line = line.replace(/(\w)\(/g, '$1 (');
+                        } else if (/\w\s+\(/.test(line)) {
+                            // Remove space: func (x) -> func(x)
+                            line = line.replace(/(\w)\s+\(/g, '$1(');
+                        }
+                    }
+                    
+                    // Array bracket spacing: arr[i] -> arr[ i ] (15% chance for C-style languages)
+                    if (['c', 'cpp', 'java', 'javascript', 'typescript', 'csharp'].includes(language)) {
+                        if (/\w+\[\w+\]/.test(line) && Math.random() < 0.15) {
+                            line = line.replace(/(\w+)\[(\w+)\]/g, '$1[ $2 ]');
+                        }
+                    }
+                    
+                    result.push(line);
+                }
+                
+                return result.join('\n');
+            }
+            
+            // Helper: Check if line is comment or string
+            isCommentOrString(line, language) {
+                const trimmed = line.trim();
+                if (language === 'python') {
+                    return trimmed.startsWith('#') || trimmed.startsWith('"""') || trimmed.startsWith("'''");
+                }
+                return trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('*');
+            }
+
+            // Transform recursive patterns to iterative (and vice versa)
+            transformRecursionToIteration(code, language, aggressive) {
+                let lines = code.split('\n');
+                let result = [];
+                
+                // Detect simple factorial recursion and convert to iterative
+                const factorialRecursivePattern = /def\s+(\w+)\s*\(\s*(\w+)\s*\)\s*:/;
+                const hasRecursiveCall = /return\s+\w+\s*\*\s*\w+\s*\(\s*\w+\s*-\s*1\s*\)/;
+                
+                let inFactorialFunc = false;
+                let factorialFuncName = '';
+                let factorialParam = '';
+                let factorialIndent = '';
+                
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    const trimmed = line.trim();
+                    const indent = line.match(/^(\s*)/)[1] || '';
+                    
+                    // Python: Detect factorial-like recursion
+                    if (language === 'python') {
+                        const funcMatch = line.match(/^(\s*)def\s+(\w+)\s*\(\s*(\w+)\s*\)\s*:/);
+                        if (funcMatch && i + 1 < lines.length) {
+                            const nextLines = lines.slice(i + 1, Math.min(i + 6, lines.length)).join('\n');
+                            // Check if it's a factorial pattern
+                            if (nextLines.includes('return') && 
+                                (nextLines.match(/return\s+\w+\s*\*\s*\w+\s*\(\s*\w+\s*-\s*1\s*\)/) ||
+                                 nextLines.match(/return\s+1/) && nextLines.match(/if.*[<=].*1/))) {
+                                
+                                factorialIndent = funcMatch[1];
+                                factorialFuncName = funcMatch[2];
+                                factorialParam = funcMatch[3];
+                                
+                                // Replace with iterative version
+                                result.push(`${factorialIndent}def ${factorialFuncName}(${factorialParam}):`);
+                                result.push(`${factorialIndent}    # Using iterative approach instead of recursion`);
+                                result.push(`${factorialIndent}    output = 1`);
+                                result.push(`${factorialIndent}    for idx in range(2, ${factorialParam} + 1):`);
+                                result.push(`${factorialIndent}        output = output * idx`);
+                                result.push(`${factorialIndent}    return output`);
+                                
+                                // Skip the original recursive function
+                                while (i + 1 < lines.length && 
+                                       (lines[i + 1].trim() === '' || 
+                                        lines[i + 1].startsWith(factorialIndent + '    ') ||
+                                        lines[i + 1].startsWith(factorialIndent + '\t'))) {
+                                    i++;
+                                }
+                                this.stats.logicChanges++;
+                                this.addTransformation('Recursion → Iteration', `Converted recursive ${factorialFuncName}() to iterative loop - eliminates stack overflow risk and often faster`);
+                                continue;
+                            }
+                        }
+                        
+                        // Detect sum recursion: sum(n) = n + sum(n-1)
+                        if (funcMatch && i + 1 < lines.length) {
+                            const nextLines = lines.slice(i + 1, Math.min(i + 6, lines.length)).join('\n');
+                            if (nextLines.match(/return\s+\w+\s*\+\s*\w+\s*\(\s*\w+\s*-\s*1\s*\)/)) {
+                                const sumParam = funcMatch[3];
+                                const sumIndent = funcMatch[1];
+                                const sumFuncName = funcMatch[2];
+                                
+                                result.push(`${sumIndent}def ${sumFuncName}(${sumParam}):`);
+                                result.push(`${sumIndent}    # Using formula: n*(n+1)/2 instead of recursion`);
+                                result.push(`${sumIndent}    return ${sumParam} * (${sumParam} + 1) // 2`);
+                                
+                                while (i + 1 < lines.length && 
+                                       (lines[i + 1].trim() === '' || 
+                                        lines[i + 1].startsWith(sumIndent + '    ') ||
+                                        lines[i + 1].startsWith(sumIndent + '\t'))) {
+                                    i++;
+                                }
+                                this.stats.logicChanges++;
+                                this.addTransformation('Recursion → Mathematical Formula', `Converted recursive sum to O(1) formula n*(n+1)/2 - much faster than O(n) recursion`);
+                                continue;
+                            }
+                        }
+                    }
+                    
+                    // JavaScript/TypeScript: Similar transformations
+                    if (['javascript', 'typescript'].includes(language)) {
+                        // Factorial recursion to iteration
+                        const jsFuncMatch = line.match(/^(\s*)function\s+(\w+)\s*\(\s*(\w+)\s*\)\s*\{/);
+                        if (jsFuncMatch && i + 1 < lines.length) {
+                            const nextLines = lines.slice(i + 1, Math.min(i + 8, lines.length)).join('\n');
+                            if (nextLines.match(/return\s+\w+\s*\*\s*\w+\s*\(\s*\w+\s*-\s*1\s*\)/) ||
+                                (nextLines.includes('return 1') && nextLines.match(/if\s*\(\s*\w+\s*[<=]+\s*1\s*\)/))) {
+                                
+                                const jsIndent = jsFuncMatch[1];
+                                const jsFuncName = jsFuncMatch[2];
+                                const jsParam = jsFuncMatch[3];
+                                
+                                result.push(`${jsIndent}function ${jsFuncName}(${jsParam}) {`);
+                                result.push(`${jsIndent}    // Using iterative approach instead of recursion`);
+                                result.push(`${jsIndent}    let output = 1;`);
+                                result.push(`${jsIndent}    for (let idx = 2; idx <= ${jsParam}; idx += 1) {`);
+                                result.push(`${jsIndent}        output = output * idx;`);
+                                result.push(`${jsIndent}    }`);
+                                result.push(`${jsIndent}    return output;`);
+                                result.push(`${jsIndent}}`);
+                                
+                                // Skip original function
+                                let braceCount = 1;
+                                while (i + 1 < lines.length && braceCount > 0) {
+                                    i++;
+                                    braceCount += (lines[i].match(/\{/g) || []).length;
+                                    braceCount -= (lines[i].match(/\}/g) || []).length;
+                                }
+                                this.stats.logicChanges++;
+                                continue;
+                            }
+                        }
+                    }
+                    
+                    // Java: Recursive to iterative
+                    if (language === 'java') {
+                        const javaFuncMatch = line.match(/^(\s*)(public\s+|private\s+|static\s+)*\s*(\w+)\s+(\w+)\s*\(\s*(\w+)\s+(\w+)\s*\)\s*\{/);
+                        if (javaFuncMatch && i + 1 < lines.length) {
+                            const nextLines = lines.slice(i + 1, Math.min(i + 8, lines.length)).join('\n');
+                            if (nextLines.match(/return\s+\w+\s*\*\s*\w+\s*\(\s*\w+\s*-\s*1\s*\)/)) {
+                                const javaIndent = javaFuncMatch[1];
+                                const modifiers = (javaFuncMatch[2] || '').trim();
+                                const returnType = javaFuncMatch[3];
+                                const funcName = javaFuncMatch[4];
+                                const paramType = javaFuncMatch[5];
+                                const paramName = javaFuncMatch[6];
+                                
+                                result.push(`${javaIndent}${modifiers ? modifiers + ' ' : ''}${returnType} ${funcName}(${paramType} ${paramName}) {`);
+                                result.push(`${javaIndent}    // Using iterative approach instead of recursion`);
+                                result.push(`${javaIndent}    ${returnType} output = 1;`);
+                                result.push(`${javaIndent}    for (${paramType} idx = 2; idx <= ${paramName}; idx += 1) {`);
+                                result.push(`${javaIndent}        output = output * idx;`);
+                                result.push(`${javaIndent}    }`);
+                                result.push(`${javaIndent}    return output;`);
+                                result.push(`${javaIndent}}`);
+                                
+                                let braceCount = 1;
+                                while (i + 1 < lines.length && braceCount > 0) {
+                                    i++;
+                                    braceCount += (lines[i].match(/\{/g) || []).length;
+                                    braceCount -= (lines[i].match(/\}/g) || []).length;
+                                }
+                                this.stats.logicChanges++;
+                                continue;
+                            }
+                        }
+                    }
+                    
+                    // C/C++: Recursive to iterative
+                    if (['c', 'cpp'].includes(language)) {
+                        const cFuncMatch = line.match(/^(\s*)(\w+)\s+(\w+)\s*\(\s*(\w+)\s+(\w+)\s*\)\s*\{/);
+                        if (cFuncMatch && i + 1 < lines.length) {
+                            const nextLines = lines.slice(i + 1, Math.min(i + 8, lines.length)).join('\n');
+                            if (nextLines.match(/return\s+\w+\s*\*\s*\w+\s*\(\s*\w+\s*-\s*1\s*\)/)) {
+                                const cIndent = cFuncMatch[1];
+                                const returnType = cFuncMatch[2];
+                                const funcName = cFuncMatch[3];
+                                const paramType = cFuncMatch[4];
+                                const paramName = cFuncMatch[5];
+                                
+                                result.push(`${cIndent}${returnType} ${funcName}(${paramType} ${paramName}) {`);
+                                result.push(`${cIndent}    // Using iterative approach instead of recursion`);
+                                result.push(`${cIndent}    ${returnType} output = 1;`);
+                                result.push(`${cIndent}    for (${paramType} idx = 2; idx <= ${paramName}; idx += 1) {`);
+                                result.push(`${cIndent}        output = output * idx;`);
+                                result.push(`${cIndent}    }`);
+                                result.push(`${cIndent}    return output;`);
+                                result.push(`${cIndent}}`);
+                                
+                                let braceCount = 1;
+                                while (i + 1 < lines.length && braceCount > 0) {
+                                    i++;
+                                    braceCount += (lines[i].match(/\{/g) || []).length;
+                                    braceCount -= (lines[i].match(/\}/g) || []).length;
+                                }
+                                this.stats.logicChanges++;
+                                continue;
+                            }
+                        }
+                    }
+                    
+                    result.push(line);
+                }
+                
+                return result.join('\n');
+            }
+
+            // Transform loop patterns
+            transformLoopPatterns(code, language, aggressive) {
+                let lines = code.split('\n');
+                let result = [];
+                
+                for (let i = 0; i < lines.length; i++) {
+                    let line = lines[i];
+                    const trimmed = line.trim();
+                    const indent = line.match(/^(\s*)/)[1] || '';
+                    
+                    // Python: for i in range(n) -> while loop
+                    if (language === 'python' && aggressive) {
+                        const rangeMatch = trimmed.match(/^for\s+(\w+)\s+in\s+range\s*\(\s*(\d+|\w+)\s*\)\s*:/);
+                        if (rangeMatch && Math.random() < 0.5) {
+                            const loopVar = rangeMatch[1];
+                            const limit = rangeMatch[2];
+                            result.push(`${indent}${loopVar} = 0`);
+                            result.push(`${indent}while ${loopVar} < ${limit}:`);
+                            
+                            // Find loop body and add increment at the end
+                            let bodyLines = [];
+                            let j = i + 1;
+                            while (j < lines.length && (lines[j].trim() === '' || lines[j].startsWith(indent + '    ') || lines[j].startsWith(indent + '\t'))) {
+                                if (lines[j].trim() !== '') {
+                                    bodyLines.push(lines[j]);
+                                }
+                                j++;
+                            }
+                            
+                            for (const bodyLine of bodyLines) {
+                                result.push(bodyLine);
+                            }
+                            result.push(`${indent}    ${loopVar} = ${loopVar} + 1`);
+                            
+                            i = j - 1;
+                            this.stats.logicChanges++;
+                            this.addTransformation('For Loop → While Loop', `Converted for-range to while loop - same logic, different control structure approach`);
+                            continue;
+                        }
+                        
+                        // range(len(arr)) -> enumerate
+                        const rangeLenMatch = trimmed.match(/^for\s+(\w+)\s+in\s+range\s*\(\s*len\s*\(\s*(\w+)\s*\)\s*\)\s*:/);
+                        if (rangeLenMatch && Math.random() < 0.6) {
+                            const idxVar = rangeLenMatch[1];
+                            const arrVar = rangeLenMatch[2];
+                            result.push(`${indent}for ${idxVar}, _ in enumerate(${arrVar}):`);
+                            this.stats.logicChanges++;
+                            this.addTransformation('Index Loop → Enumerate', `Using enumerate() is more Pythonic than range(len()) - cleaner and more readable`);
+                            continue;
+                        }
+                    }
+                    
+                    // C-style: for loop -> while loop
+                    if (['c', 'cpp', 'java', 'javascript', 'typescript', 'csharp'].includes(language) && aggressive) {
+                        const forMatch = trimmed.match(/^for\s*\(\s*(\w+)\s+(\w+)\s*=\s*(\d+)\s*;\s*\w+\s*<\s*(\w+|\d+)\s*;\s*\w+\+\+\s*\)\s*\{?/);
+                        if (forMatch && Math.random() < 0.4) {
+                            const varType = forMatch[1];
+                            const varName = forMatch[2];
+                            const startVal = forMatch[3];
+                            const limit = forMatch[4];
+                            
+                            result.push(`${indent}${varType} ${varName} = ${startVal};`);
+                            result.push(`${indent}while (${varName} < ${limit}) {`);
+                            
+                            // Find loop body
+                            let j = i + 1;
+                            let braceCount = trimmed.includes('{') ? 1 : 0;
+                            while (j < lines.length) {
+                                const bodyLine = lines[j];
+                                braceCount += (bodyLine.match(/\{/g) || []).length;
+                                braceCount -= (bodyLine.match(/\}/g) || []).length;
+                                
+                                if (braceCount === 0 && bodyLine.includes('}')) {
+                                    result.push(`${indent}    ${varName} = ${varName} + 1;`);
+                                    result.push(bodyLine);
+                                    break;
+                                } else {
+                                    result.push(bodyLine);
+                                }
+                                j++;
+                            }
+                            
+                            i = j;
+                            this.stats.logicChanges++;
+                            continue;
+                        }
+                    }
+                    
+                    result.push(line);
+                }
+                
+                return result.join('\n');
+            }
+
+            // Transform conditional patterns
+            transformConditionalPatterns(code, language, aggressive) {
+                let lines = code.split('\n');
+                let result = [];
+                
+                for (let i = 0; i < lines.length; i++) {
+                    let line = lines[i];
+                    const trimmed = line.trim();
+                    const indent = line.match(/^(\s*)/)[1] || '';
+                    
+                    // Python: if x > y -> if not x <= y
+                    if (language === 'python' && aggressive) {
+                        if (/if\s+\w+\s*>\s*\w+/.test(trimmed) && Math.random() < 0.4) {
+                            line = line.replace(/if\s+(\w+)\s*>\s*(\w+)/g, 'if not $1 <= $2');
+                            this.stats.logicChanges++;
+                        }
+                        if (/if\s+\w+\s*<\s*\w+/.test(trimmed) && Math.random() < 0.4) {
+                            line = line.replace(/if\s+(\w+)\s*<\s*(\w+)/g, 'if not $1 >= $2');
+                            this.stats.logicChanges++;
+                        }
+                    }
+                    
+                    // Ternary to if-else (aggressive mode)
+                    if (aggressive && ['javascript', 'typescript', 'java', 'c', 'cpp', 'csharp'].includes(language)) {
+                        const ternaryMatch = line.match(/^(\s*)(\w+)\s*=\s*\(?\s*(\w+)\s*([<>=!]+)\s*(\w+)\s*\)?\s*\?\s*(.+?)\s*:\s*(.+?)\s*;/);
+                        if (ternaryMatch && Math.random() < 0.35) {
+                            const tIndent = ternaryMatch[1];
+                            const varName = ternaryMatch[2];
+                            const condLeft = ternaryMatch[3];
+                            const condOp = ternaryMatch[4];
+                            const condRight = ternaryMatch[5];
+                            const trueVal = ternaryMatch[6];
+                            const falseVal = ternaryMatch[7];
+                            
+                            result.push(`${tIndent}if (${condLeft} ${condOp} ${condRight}) {`);
+                            result.push(`${tIndent}    ${varName} = ${trueVal};`);
+                            result.push(`${tIndent}} else {`);
+                            result.push(`${tIndent}    ${varName} = ${falseVal};`);
+                            result.push(`${tIndent}}`);
+                            this.stats.logicChanges++;
+                            continue;
+                        }
+                    }
+                    
+                    result.push(line);
+                }
+                
+                return result.join('\n');
+            }
+
+            // Transform math patterns
+            transformMathPatterns(code, language, aggressive) {
+                let lines = code.split('\n');
+                let result = [];
+                
+                for (let i = 0; i < lines.length; i++) {
+                    let line = lines[i];
+                    const trimmed = line.trim();
+                    const indent = line.match(/^(\s*)/)[1] || '';
+                    
+                    // Sum formula: sum = n*(n+1)/2 -> loop accumulation (or reverse)
+                    // Detect sum using loop and replace with formula
+                    if (language === 'python') {
+                        // Detect: sum = 0; for i in range(1, n+1): sum += i
+                        const sumInitMatch = trimmed.match(/^(\w+)\s*=\s*0$/);
+                        if (sumInitMatch && i + 1 < lines.length) {
+                            const sumVar = sumInitMatch[1];
+                            const nextLine = lines[i + 1].trim();
+                            const forMatch = nextLine.match(/^for\s+(\w+)\s+in\s+range\s*\(\s*1\s*,\s*(\w+)\s*\+?\s*1?\s*\)\s*:/);
+                            if (forMatch && i + 2 < lines.length) {
+                                const loopVar = forMatch[1];
+                                const upperBound = forMatch[2];
+                                const bodyLine = lines[i + 2].trim();
+                                if (bodyLine.match(new RegExp(`^${sumVar}\\s*[+]=\\s*${loopVar}$`)) || 
+                                    bodyLine.match(new RegExp(`^${sumVar}\\s*=\\s*${sumVar}\\s*\\+\\s*${loopVar}$`))) {
+                                    // Replace with formula
+                                    result.push(`${indent}# Using mathematical formula instead of loop`);
+                                    result.push(`${indent}${sumVar} = ${upperBound} * (${upperBound} + 1) // 2`);
+                                    i += 2;
+                                    // Skip any remaining loop body
+                                    while (i + 1 < lines.length && lines[i + 1].startsWith(indent + '    ')) {
+                                        i++;
+                                    }
+                                    this.stats.logicChanges++;
+                                    this.addTransformation('Loop → Math Formula', `Replaced O(n) loop with O(1) Gauss formula: n*(n+1)/2 - much more efficient!`);
+                                    continue;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Power of 2 check: n & (n-1) == 0 -> log2 approach
+                    if (aggressive) {
+                        if (/\w+\s*&\s*\(\s*\w+\s*-\s*1\s*\)\s*==\s*0/.test(line) && Math.random() < 0.3) {
+                            // Keep as is for correctness, just add comment
+                            result.push(line.replace(/(\w+)\s*&\s*\(\s*\w+\s*-\s*1\s*\)\s*==\s*0/, '($1 & ($1 - 1)) == 0'));
+                            this.stats.logicChanges++;
+                            continue;
+                        }
+                    }
+                    
+                    // x * 2 -> x << 1 (and reverse)
+                    if (aggressive && ['c', 'cpp', 'java'].includes(language)) {
+                        if (/\w+\s*\*\s*2\b/.test(line) && Math.random() < 0.35) {
+                            line = line.replace(/(\w+)\s*\*\s*2\b/g, '($1 << 1)');
+                            this.stats.logicChanges++;
+                            this.addTransformation('Multiply → Bit Shift', `x*2 becomes x<<1 - bitwise operations are faster at CPU level`);
+                        }
+                        if (/\w+\s*\/\s*2\b/.test(line) && Math.random() < 0.35) {
+                            line = line.replace(/(\w+)\s*\/\s*2\b/g, '($1 >> 1)');
+                            this.stats.logicChanges++;
+                        }
+                    }
+                    
+                    // x % 2 == 0 -> (x & 1) == 0 (even check)
+                    if (aggressive && ['c', 'cpp', 'java', 'javascript', 'typescript'].includes(language)) {
+                        if (/\w+\s*%\s*2\s*==\s*0/.test(line) && Math.random() < 0.4) {
+                            line = line.replace(/(\w+)\s*%\s*2\s*==\s*0/g, '($1 & 1) == 0');
+                            this.stats.logicChanges++;
+                            this.addTransformation('Modulo → Bitwise AND', `x%2==0 becomes (x&1)==0 - bitwise check for even/odd is faster`);
+                        }
+                        if (/\w+\s*%\s*2\s*!=\s*0/.test(line) && Math.random() < 0.4) {
+                            line = line.replace(/(\w+)\s*%\s*2\s*!=\s*0/g, '($1 & 1) != 0');
+                            this.stats.logicChanges++;
+                            this.addTransformation('Modulo → Bitwise AND', `x%2!=0 becomes (x&1)!=0 - bitwise check for odd is faster`);
+                        }
+                    }
+                    
+                    result.push(line);
+                }
+                
+                return result.join('\n');
+            }
+
+            // Transform array/list patterns
+            transformArrayPatterns(code, language, aggressive) {
+                let lines = code.split('\n');
+                let result = [];
+                
+                for (let i = 0; i < lines.length; i++) {
+                    let line = lines[i];
+                    const trimmed = line.trim();
+                    const indent = line.match(/^(\s*)/)[1] || '';
+                    
+                    // Python: list comprehension to loop (or reverse)
+                    if (language === 'python' && aggressive) {
+                        // Simple list comprehension to loop
+                        const listCompMatch = line.match(/^(\s*)(\w+)\s*=\s*\[\s*(\w+)\s+for\s+(\w+)\s+in\s+(\w+)\s*\]/);
+                        if (listCompMatch && Math.random() < 0.4) {
+                            const lcIndent = listCompMatch[1];
+                            const resultVar = listCompMatch[2];
+                            const expr = listCompMatch[3];
+                            const loopVar = listCompMatch[4];
+                            const iterVar = listCompMatch[5];
+                            
+                            result.push(`${lcIndent}# Expanded from list comprehension`);
+                            result.push(`${lcIndent}${resultVar} = []`);
+                            result.push(`${lcIndent}for ${loopVar} in ${iterVar}:`);
+                            result.push(`${lcIndent}    ${resultVar}.append(${expr})`);
+                            this.stats.logicChanges++;
+                            this.addTransformation('List Comprehension → Loop', `Expanded compact list comprehension to explicit loop - easier to debug and modify`);
+                            continue;
+                        }
+                        
+                        // map() to list comprehension
+                        const mapMatch = line.match(/^(\s*)(\w+)\s*=\s*list\s*\(\s*map\s*\(\s*(\w+)\s*,\s*(\w+)\s*\)\s*\)/);
+                        if (mapMatch && Math.random() < 0.5) {
+                            const mIndent = mapMatch[1];
+                            const mResultVar = mapMatch[2];
+                            const mFunc = mapMatch[3];
+                            const mIter = mapMatch[4];
+                            
+                            result.push(`${mIndent}${mResultVar} = [${mFunc}(x) for x in ${mIter}]`);
+                            this.stats.logicChanges++;
+                            this.addTransformation('map() → List Comprehension', `List comprehension is more Pythonic and often faster than map()`);
+                            continue;
+                        }
+                        
+                        // sum() with generator to loop
+                        const sumGenMatch = line.match(/^(\s*)(\w+)\s*=\s*sum\s*\(\s*(\w+)\s+for\s+(\w+)\s+in\s+(\w+)\s*\)/);
+                        if (sumGenMatch && Math.random() < 0.4) {
+                            const sgIndent = sumGenMatch[1];
+                            const sgResultVar = sumGenMatch[2];
+                            const sgExpr = sumGenMatch[3];
+                            const sgLoopVar = sumGenMatch[4];
+                            const sgIterVar = sumGenMatch[5];
+                            
+                            result.push(`${sgIndent}# Expanded from generator sum`);
+                            result.push(`${sgIndent}${sgResultVar} = 0`);
+                            result.push(`${sgIndent}for ${sgLoopVar} in ${sgIterVar}:`);
+                            result.push(`${sgIndent}    ${sgResultVar} = ${sgResultVar} + ${sgExpr}`);
+                            this.stats.logicChanges++;
+                            this.addTransformation('Generator Sum → Explicit Loop', `Expanded generator expression to loop - same result, different approach`);
+                            continue;
+                        }
+                    }
+                    
+                    // JavaScript: forEach to for loop
+                    if (['javascript', 'typescript'].includes(language) && aggressive) {
+                        const forEachMatch = line.match(/^(\s*)(\w+)\.forEach\s*\(\s*(\w+)\s*=>\s*\{/);
+                        if (forEachMatch && Math.random() < 0.4) {
+                            const feIndent = forEachMatch[1];
+                            const feArr = forEachMatch[2];
+                            const feVar = forEachMatch[3];
+                            
+                            result.push(`${feIndent}for (let idx = 0; idx < ${feArr}.length; idx += 1) {`);
+                            result.push(`${feIndent}    const ${feVar} = ${feArr}[idx];`);
+                            this.stats.logicChanges++;
+                            this.addTransformation('forEach → For Loop', `Traditional for loop gives you index access and break/continue support`);
+                            continue;
+                        }
+                    }
+                    
+                    // arr.reverse() -> manual reverse
+                    if (language === 'python' && aggressive) {
+                        if (/\.reverse\s*\(\s*\)/.test(line) && Math.random() < 0.3) {
+                            const revMatch = line.match(/(\w+)\.reverse\s*\(\s*\)/);
+                            if (revMatch) {
+                                const arrName = revMatch[1];
+                                result.push(line.replace(`${arrName}.reverse()`, `${arrName}[::-1]`));
+                                this.stats.logicChanges++;
+                                continue;
+                            }
+                        }
+                    }
+                    
+                    result.push(line);
+                }
+                
+                return result.join('\n');
+            }
 
             // Variable renaming to avoid plagiarism detection
             renameVariables(code, language) {
                 const varMappings = {
+                    // Single letter variable mappings (a,b,c -> x,y,z etc.)
+                    'a': ['x', 'p', 'm', 'u'],
+                    'b': ['y', 'q', 'n', 'v'],
+                    'c': ['z', 'r', 'o', 'w'],
+                    'd': ['s', 'f', 'k', 'e'],
+                    'e': ['t', 'g', 'l', 'd'],
+                    'f': ['u', 'h', 'm', 'g'],
+                    'g': ['v', 'i', 'n', 'h'],
+                    'h': ['w', 'j', 'o', 'k'],
+                    'i': ['j', 'k', 'm', 'idx'],
+                    'j': ['k', 'i', 'n', 'jdx'],
+                    'k': ['m', 'j', 'p', 'kdx'],
+                    'l': ['n', 'm', 'q', 'o'],
+                    'm': ['n', 'p', 'k', 'l'],
+                    'n': ['m', 'o', 'p', 'k'],
+                    'o': ['p', 'q', 'r', 'l'],
+                    'p': ['q', 'r', 's', 'm'],
+                    'q': ['r', 's', 't', 'p'],
+                    'r': ['s', 't', 'u', 'q'],
+                    's': ['t', 'u', 'v', 'r'],
+                    't': ['u', 'v', 'w', 's'],
+                    'u': ['v', 'w', 'x', 't'],
+                    'v': ['w', 'x', 'y', 'u'],
+                    'w': ['x', 'y', 'z', 'v'],
+                    'x': ['y', 'z', 'a', 'p'],
+                    'y': ['z', 'x', 'b', 'q'],
+                    'z': ['a', 'b', 'c', 'r'],
                     // Common variable names -> alternatives (expanded for C/C++/Python/Java)
                     'count': ['counter', 'cnt', 'totalCount', 'numItems'],
                     'counter': ['count', 'cnt', 'tally', 'ctr'],
@@ -2163,8 +3068,25 @@
                     
                     if (hasMatch && !usedReplacements[varName]) {
                         const alternatives = varMappings[varName];
-                        // Pick a random alternative that hasn't been used
-                        const newName = alternatives[Math.floor(Math.random() * alternatives.length)];
+                        
+                        // Find an alternative that doesn't already exist in the code
+                        let newName = null;
+                        const codeText = lines.join('\n');
+                        
+                        for (let alt of alternatives) {
+                            // Check if this alternative already exists as a variable in the code
+                            const altRegex = new RegExp(`\\b${alt}\\b`);
+                            if (!altRegex.test(codeText) && !Object.values(usedReplacements).includes(alt)) {
+                                newName = alt;
+                                break;
+                            }
+                        }
+                        
+                        // If all alternatives conflict, skip this variable
+                        if (!newName) {
+                            continue;
+                        }
+                        
                         usedReplacements[varName] = newName;
                         
                         lines = lines.map(line => {
@@ -2177,7 +3099,24 @@
                                 trimmed.startsWith('using')) {
                                 return line;
                             }
-                            return line.replace(new RegExp(`\\b${varName}\\b`, 'g'), newName);
+                            
+                            // Protect strings from variable replacement
+                            // Replace strings temporarily with placeholders
+                            const stringPlaceholders = [];
+                            let protectedLine = line.replace(/(["'`])(?:(?!\1|\\).|\\.)*\1/g, (match) => {
+                                stringPlaceholders.push(match);
+                                return `__STRING_PLACEHOLDER_${stringPlaceholders.length - 1}__`;
+                            });
+                            
+                            // Now replace variable names (only outside strings)
+                            protectedLine = protectedLine.replace(new RegExp(`\\b${varName}\\b`, 'g'), newName);
+                            
+                            // Restore strings
+                            protectedLine = protectedLine.replace(/__STRING_PLACEHOLDER_(\d+)__/g, (match, idx) => {
+                                return stringPlaceholders[parseInt(idx)];
+                            });
+                            
+                            return protectedLine;
                         });
                         this.stats.varsRenamed++;
                     }
@@ -2205,8 +3144,15 @@
                     // ========== UNIVERSAL TRANSFORMATIONS (All Languages) ==========
                     
                     // Transform i++ to i += 1 or i = i + 1 (C-style languages)
-                    if (['javascript', 'typescript', 'java', 'c', 'cpp', 'csharp', 'go'].includes(language)) {
-                        if (/\w+\+\+/.test(line)) {
+                    // IMPORTANT: Skip if inside while() or for() conditions - pre/post increment matters there!
+                    const isInCondition = /while\s*\(.*\+\+.*\)/.test(line) || 
+                                          /while\s*\(.*--.*\)/.test(line) ||
+                                          /for\s*\(.*;.*\+\+.*\)/.test(line) ||
+                                          /for\s*\(.*;.*--.*\)/.test(line);
+                    
+                    if (['javascript', 'typescript', 'java', 'c', 'cpp', 'csharp', 'go'].includes(language) && !isInCondition) {
+                        // Only transform standalone increment statements (ending with ; or at end of line)
+                        if (/\w+\+\+\s*;/.test(line) || /^\s*\w+\+\+\s*$/.test(line)) {
                             const choice = Math.random();
                             if (choice < 0.5) {
                                 line = line.replace(/(\w+)\+\+/g, '$1 += 1');
@@ -2216,7 +3162,7 @@
                             this.stats.logicChanges++;
                         }
                         
-                        if (/\w+--/.test(line)) {
+                        if (/\w+--\s*;/.test(line) || /^\s*\w+--\s*$/.test(line)) {
                             const choice = Math.random();
                             if (choice < 0.5) {
                                 line = line.replace(/(\w+)--/g, '$1 -= 1');
@@ -2748,12 +3694,17 @@
             humanizer.setIntensity(parseInt(document.getElementById('intensitySlider').value));
             humanizer.setTypoLevel(parseInt(document.getElementById('typoSlider').value));
             humanizer.setCommentStyle(document.getElementById('commentStyle').value);
+            humanizer.setLogicChange(document.getElementById('logicChange').value);
+
+            // Store original for diff view
+            originalInputCode = input;
 
             await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 500));
 
             try {
                 outputCode = humanizer.transform(input, language);
                 const stats = humanizer.getStats();
+                const transformations = humanizer.getTransformations();
                 
                 document.getElementById('linesProcessed').textContent = stats.lines;
                 document.getElementById('varsRenamed').textContent = stats.varsRenamed;
@@ -2761,10 +3712,36 @@
                 document.getElementById('commentsHumanized').textContent = stats.comments;
                 document.getElementById('outputCharCount').textContent = outputCode.length + ' chars';
                 
+                // Display learning transformations
+                const learningSection = document.getElementById('learningSection');
+                const transformationsList = document.getElementById('transformationsList');
+                
+                if (transformations && transformations.length > 0) {
+                    transformationsList.innerHTML = transformations.map(t => `
+                        <div class="transformation-item">
+                            <div class="transformation-type">🔄 ${t.type}</div>
+                            <div class="transformation-desc">${t.description}</div>
+                        </div>
+                    `).join('');
+                    learningSection.style.display = 'block';
+                } else {
+                    learningSection.style.display = 'none';
+                }
+                
                 const codeElement = document.getElementById('highlightedCode');
                 codeElement.textContent = outputCode;
                 codeElement.className = `hljs language-${language}`;
                 hljs.highlightElement(codeElement);
+                
+                // Show "Humanize Again" button and Diff toggle
+                document.getElementById('humanizeAgainBtn').style.display = 'inline-block';
+                document.getElementById('diffToggleBtn').style.display = 'inline-block';
+                
+                // Update diff view if open
+                if (document.getElementById('diffContainer').classList.contains('show')) {
+                    document.getElementById('diffOriginal').textContent = originalInputCode;
+                    document.getElementById('diffHumanized').textContent = outputCode;
+                }
                 
                 // Update usage
                 usageCount++;
@@ -2801,6 +3778,26 @@
             if (outputCode) {
                 navigator.clipboard.writeText(outputCode);
                 showCopied(document.getElementById('copyOutputBtn'));
+            }
+        }
+
+        // Store original code for diff view
+        let originalInputCode = '';
+        
+        // Toggle diff view
+        function toggleDiffView() {
+            const diffContainer = document.getElementById('diffContainer');
+            const diffBtn = document.getElementById('diffToggleBtn');
+            
+            if (diffContainer.classList.contains('show')) {
+                diffContainer.classList.remove('show');
+                diffBtn.classList.remove('active');
+            } else {
+                diffContainer.classList.add('show');
+                diffBtn.classList.add('active');
+                // Update diff content
+                document.getElementById('diffOriginal').textContent = originalInputCode;
+                document.getElementById('diffHumanized').textContent = outputCode;
             }
         }
 
@@ -2868,41 +3865,16 @@
 
         // ==================== DEFAULT CODE ====================
         const defaultCode = {
-            python: `print("If you follow me on GitHub and Instagram, we will provide you lifetime free access to all premium features!")
-print("If you unfollow me, our AI will detect it and remove all premium features!")`,
-            javascript: `console.log("If you follow me on GitHub and Instagram, we will provide you lifetime free access to all premium features!");
-console.log("If you unfollow me, our AI will detect it and remove all premium features!");`,
-            typescript: `console.log("If you follow me on GitHub and Instagram, we will provide you lifetime free access to all premium features!");
-console.log("If you unfollow me, our AI will detect it and remove all premium features!");`,
-            java: `System.out.println("If you follow me on GitHub and Instagram, we will provide you lifetime free access to all premium features!");
-System.out.println("If you unfollow me, our AI will detect it and remove all premium features!");`,
-            c: `#include <stdio.h>
-int main() {
-    printf("If you follow me on GitHub and Instagram, we will provide you lifetime free access to all premium features!\\n");
-    printf("If you unfollow me, our AI will detect it and remove all premium features!\\n");
-    return 0;
-}`,
-            cpp: `#include <iostream>
-using namespace std;
-int main() {
-    cout << "If you follow me on GitHub and Instagram, we will provide you lifetime free access to all premium features!" << endl;
-    cout << "If you unfollow me, our AI will detect it and remove all premium features!" << endl;
-    return 0;
-}`,
-            csharp: `Console.WriteLine("If you follow me on GitHub and Instagram, we will provide you lifetime free access to all premium features!");
-Console.WriteLine("If you unfollow me, our AI will detect it and remove all premium features!");`,
-            go: `package main
-import "fmt"
-func main() {
-    fmt.Println("If you follow me on GitHub and Instagram, we will provide you lifetime free access to all premium features!")
-    fmt.Println("If you unfollow me, our AI will detect it and remove all premium features!")
-}`,
-            rust: `fn main() {
-    println!("If you follow me on GitHub and Instagram, we will provide you lifetime free access to all premium features!");
-    println!("If you unfollow me, our AI will detect it and remove all premium features!");
-}`,
-            sql: `SELECT 'If you follow me on GitHub and Instagram, we will provide you lifetime free access to all premium features!';
-SELECT 'If you unfollow me, our AI will detect it and remove all premium features!';`
+            python: ``,
+            javascript: ``,
+            typescript: ``,
+            java: ``,
+            c: ``,
+            cpp: ``,
+            csharp: ``,
+            go: ``,
+            rust: ``,
+            sql: ``
         };
 
         // ==================== LOCALSTORAGE ====================
@@ -2996,7 +3968,7 @@ SELECT 'If you unfollow me, our AI will detect it and remove all premium feature
         // ==================== PRICING ====================
         let currentCurrency = 'inr';
         const prices = {
-            inr: { monthly: '₹50', yearly: '₹150', monthlyLabel: '/ month', yearlyLabel: '/ year' },
+            inr: { monthly: '₹30', yearly: '₹60', monthlyLabel: '/ month', yearlyLabel: '/ year' },
             usd: { monthly: '$0.60', yearly: '$1.80', monthlyLabel: '/ month', yearlyLabel: '/ year' }
         };
 
